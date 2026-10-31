@@ -225,3 +225,4 @@ export const PaletteEditor: React.FC<PaletteEditorProps> = ({
     </section>
   );
 };
+

@@ -1,34 +1,36 @@
-# Timy — Minimal Workout & Interval Timer
+# Pulse — Minimalistic Workout Timer PWA
 
-A minimalistic, offline-capable Progressive Web App (PWA) timer for workouts and intervals, built with React, TypeScript, and Vite.
-
-**Live Demo:** https://karfous.github.io/timy/
+A clean, thin, modern, dark-mode-first **Workout & Interval Timer** built with **React + TypeScript + Vite**, designed to work completely offline as a **Progressive Web App (PWA)** and deploy seamlessly to **GitHub Pages**.
 
 ## Features
 
-- **Minimalist Dark UI & Custom Themes:** Clean, high-contrast dark theme by default with a built-in palette editor and saved custom themes.
-- **Circular Dial & Direct Numeric Input:** Set durations by dragging the interactive circular dial or typing numbers directly.
-- **Simple & Interval Workout Timers:** Configure single countdown timers or multi-lap workout timers with custom work and break intervals.
-- **Audio Cues:** Synthesized Web Audio API countdown beeps during the last 5 seconds before each round transition.
-- **Offline & LocalStorage Persistence:** Automatically persists saved timers, custom color palettes, and workout history/stats locally, and works completely offline as an installable PWA.
-- **Import / Export:** Backup and share timer definitions via JSON.
+- **Minimalist Dark UI & Custom Palette Editor**:
+  - Default dark theme (`Obsidian Dark`) plus built-in themes and a live **Color Palette Editor** saved to `localStorage`.
+- **Two Concentric Circular Time Dials + Direct Numeric Input**:
+  - Drag the **outer ring** for **Minutes (`0–60`)** and the **inner ring** for **Seconds (`0–59`)**, or type numbers directly in the center (`MM:SS` or total seconds).
+- **Simple & Workout Interval Timers**:
+  - Define **Simple Countdown Timers** or **Workout Interval Timers** with configurable **Number of Laps**, **Working Time**, **Break Time**, and optional **Prepare Countdown**.
+- **5-Second Countdown Beeps in Every Round**:
+  - Synthesized Web Audio API beeps play during the final **5 seconds (`5, 4, 3, 2, 1`)** of every round/phase before transitioning, plus distinct start/break/completion chimes.
+- **`localStorage` Persistence**:
+  - Automatically saves your custom color palettes, timer definitions, active timer selection, and workout run history/statistics across page refreshes.
+- **Export & Import JSON**:
+  - Export your timer definitions to a `.json` file (or clipboard) and import timer definitions anytime.
+- **Offline PWA & GitHub Pages Ready**:
+  - Configured with `vite-plugin-pwa` (Service Worker precaching + Web App Manifest) and relative asset paths (`base: './'`) plus `.github/workflows/deploy.yml`.
 
-## Development
+## Scripts
 
 ```bash
-# Install dependencies
-npm install
-
-# Start development server
+# Start local development server
 npm run dev
 
 # Run unit tests
 npm test
 
-# Build for production
+# Build production offline PWA bundle into dist/
 npm run build
+
+# Preview production build locally
+npm run preview
 ```
-
-## Deployment
-
-Pushes to the `main` branch automatically build and deploy to GitHub Pages via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).

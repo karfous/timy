@@ -406,3 +406,4 @@ export function parseImportedTimersJson(jsonText: string): TimerDefinition[] {
 
   return sanitized;
 }
+

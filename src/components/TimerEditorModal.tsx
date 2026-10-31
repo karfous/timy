@@ -260,3 +260,4 @@ export const TimerEditorModal: React.FC<TimerEditorModalProps> = ({
     </div>
   );
 };
+
