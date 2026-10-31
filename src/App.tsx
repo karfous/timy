@@ -1,15 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Plus,
-  Edit3,
-  Trash2,
-  FileJson,
   Activity,
   Palette,
   Timer as TimerIcon,
-  Repeat,
-  Clock,
-  Tag,
+  Menu,
+  X,
 } from 'lucide-react';
 import {
   ColorPalette,
@@ -33,17 +28,13 @@ import {
   saveAudioMuted,
 } from './services/storage';
 import { soundEngine } from './services/audio';
-import {
-  formatHumanDuration,
-  getTotalTimerDurationSec,
-} from './utils/timerEngine';
-import { ActiveTimerRunner } from './components/ActiveTimerRunner';
 import { TimerEditorModal } from './components/TimerEditorModal';
-import { PaletteEditor } from './components/PaletteEditor';
-import { StatsAndHistory } from './components/StatsAndHistory';
 import { ImportExportModal } from './components/ImportExportModal';
-
-type ActiveView = 'workout' | 'stats' | 'palette';
+import { Screen, ScreenRoute, useScreenRouter } from './components/Screen';
+import { TimersScreen } from './screens/TimersScreen';
+import { WorkoutScreen } from './screens/WorkoutScreen';
+import { StatsScreen } from './screens/StatsScreen';
+import { PaletteScreen } from './screens/PaletteScreen';
 
 export const App: React.FC = () => {
   const [timers, setTimers] = useState<TimerDefinition[]>(() => loadTimers());
@@ -65,11 +56,11 @@ export const App: React.FC = () => {
     return initialMuted;
   });
 
-  const [activeView, setActiveView] = useState<ActiveView>('workout');
+  const { activeScreen, navigateToScreen } = useScreenRouter('timers');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [editingTimer, setEditingTimer] = useState<TimerDefinition | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   // Collect all unique tags across saved timers
   const allTags = useMemo(() => {
@@ -86,27 +77,6 @@ export const App: React.FC = () => {
     }
     return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
   }, [timers]);
-
-  // Filter timers by selected tags
-  const filteredTimers = useMemo(() => {
-    if (selectedTags.length === 0) return timers;
-    return timers.filter((timer) => {
-      const timerTagsLower = (timer.tags ?? []).map((t) => t.toLowerCase());
-      return selectedTags.every((sel) =>
-        timerTagsLower.includes(sel.toLowerCase())
-      );
-    });
-  }, [timers, selectedTags]);
-
-  const handleToggleTagFilter = (tag: string) => {
-    setSelectedTags((prev) => {
-      const exists = prev.some((t) => t.toLowerCase() === tag.toLowerCase());
-      if (exists) {
-        return prev.filter((t) => t.toLowerCase() !== tag.toLowerCase());
-      }
-      return [...prev, tag];
-    });
-  };
 
   // Apply palette CSS variables on mount and whenever palette changes
   useEffect(() => {
@@ -126,8 +96,36 @@ export const App: React.FC = () => {
     }
   }, [activeTimerId]);
 
+  // Close mobile overlay menu on Escape key
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMobileMenuOpen]);
+
   const activeTimer =
     timers.find((t) => t.id === activeTimerId) ?? timers[0];
+
+  const handleSelectMenuScreen = useCallback(
+    (screen: ScreenRoute) => {
+      navigateToScreen(screen);
+      setIsMobileMenuOpen(false);
+    },
+    [navigateToScreen]
+  );
+
+  const handleChooseTimer = useCallback(
+    (id: string) => {
+      setActiveTimerId(id);
+      navigateToScreen('workout');
+    },
+    [navigateToScreen]
+  );
 
   const handleToggleMute = useCallback(() => {
     setMuted((prev) => {
@@ -228,276 +226,206 @@ export const App: React.FC = () => {
     });
   };
 
+  const isWorkoutLocked = activeScreen === 'workout';
+
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell ${isWorkoutLocked ? 'app-shell-locked' : ''}`}
+      data-active-screen={activeScreen}
+    >
       {/* Minimalist Top Bar */}
       <header className="top-bar">
-        <div className="brand-block">
+        <div
+          className="brand-block"
+          role="button"
+          tabIndex={0}
+          onClick={() => handleSelectMenuScreen('timers')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleSelectMenuScreen('timers');
+            }
+          }}
+        >
           <span className="brand-dot" />
           <h1 className="brand-title">TIMY</h1>
           <span className="brand-tag">WORKOUT TIMER</span>
         </div>
 
-        <nav className="main-nav" aria-label="Main navigation">
+        {/* Desktop Navigation */}
+        <nav className="main-nav desktop-nav" aria-label="Main navigation">
           <button
             type="button"
-            className={`nav-tab ${activeView === 'workout' ? 'active' : ''}`}
-            onClick={() => setActiveView('workout')}
+            className={`nav-tab ${
+              activeScreen === 'timers' || activeScreen === 'workout'
+                ? 'active'
+                : ''
+            }`}
+            onClick={() => handleSelectMenuScreen('timers')}
           >
             <TimerIcon size={16} strokeWidth={1.6} />
-            <span>Timer</span>
+            <span>Timers</span>
           </button>
           <button
             type="button"
-            className={`nav-tab ${activeView === 'stats' ? 'active' : ''}`}
-            onClick={() => setActiveView('stats')}
+            className={`nav-tab ${activeScreen === 'stats' ? 'active' : ''}`}
+            onClick={() => handleSelectMenuScreen('stats')}
           >
             <Activity size={16} strokeWidth={1.6} />
-            <span>History & Stats</span>
+            <span>Stats</span>
             {history.length > 0 && (
               <span className="nav-badge">{history.length}</span>
             )}
           </button>
           <button
             type="button"
-            className={`nav-tab ${activeView === 'palette' ? 'active' : ''}`}
-            onClick={() => setActiveView('palette')}
+            className={`nav-tab ${activeScreen === 'palette' ? 'active' : ''}`}
+            onClick={() => handleSelectMenuScreen('palette')}
           >
             <Palette size={16} strokeWidth={1.6} />
             <span>Palette</span>
           </button>
         </nav>
+
+        {/* Mobile Hamburger / Close (X) Button */}
+        <button
+          type="button"
+          className={`hamburger-btn ${isMobileMenuOpen ? 'is-open' : ''}`}
+          onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="mobile-overlay-menu"
+          aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+        >
+          {isMobileMenuOpen ? (
+            <X size={20} strokeWidth={1.8} />
+          ) : (
+            <Menu size={20} strokeWidth={1.8} />
+          )}
+        </button>
       </header>
 
-      {/* Main Content Area */}
+      {/* Mobile Fullscreen Overlay Menu */}
+      {isMobileMenuOpen && (
+        <div
+          id="mobile-overlay-menu"
+          className="mobile-menu-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile navigation menu"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <nav
+            className="mobile-overlay-nav"
+            aria-label="Mobile menu options"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className={`mobile-menu-item ${
+                activeScreen === 'timers' || activeScreen === 'workout'
+                  ? 'active'
+                  : ''
+              }`}
+              onClick={() => handleSelectMenuScreen('timers')}
+            >
+              <TimerIcon size={20} strokeWidth={1.7} />
+              <span>Timers</span>
+            </button>
+
+            <button
+              type="button"
+              className={`mobile-menu-item ${
+                activeScreen === 'stats' ? 'active' : ''
+              }`}
+              onClick={() => handleSelectMenuScreen('stats')}
+            >
+              <Activity size={20} strokeWidth={1.7} />
+              <span>Stats</span>
+              {history.length > 0 && (
+                <span className="nav-badge">{history.length}</span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className={`mobile-menu-item ${
+                activeScreen === 'palette' ? 'active' : ''
+              }`}
+              onClick={() => handleSelectMenuScreen('palette')}
+            >
+              <Palette size={20} strokeWidth={1.7} />
+              <span>Palette</span>
+            </button>
+          </nav>
+        </div>
+      )}
+
+      {/* Main Content Area with Screen Routing */}
       <main className="main-content">
-        {activeView === 'workout' && activeTimer && (
-          <div className="workout-layout">
-            {/* Active Timer Runner */}
-            <ActiveTimerRunner
+        <Screen
+          id="timers"
+          activeScreen={activeScreen}
+          ariaLabel="Timers Screen"
+        >
+          <TimersScreen
+            timers={timers}
+            activeTimerId={activeTimer?.id ?? ''}
+            allTags={allTags}
+            onChooseTimer={handleChooseTimer}
+            onCreateNewTimer={() => {
+              setEditingTimer(null);
+              setIsEditorOpen(true);
+            }}
+            onEditTimer={(timer) => {
+              setEditingTimer(timer);
+              setIsEditorOpen(true);
+            }}
+            onDeleteTimer={handleDeleteTimer}
+            onOpenImportExport={() => setIsImportExportOpen(true)}
+          />
+        </Screen>
+
+        {activeTimer && (
+          <Screen
+            id="workout"
+            activeScreen={activeScreen}
+            ariaLabel="Workout Screen"
+            lockViewport
+          >
+            <WorkoutScreen
               timer={activeTimer}
               muted={muted}
               onToggleMute={handleToggleMute}
+              onBackToTimers={() => navigateToScreen('timers')}
               onWorkoutFinished={handleWorkoutFinished}
             />
-
-            {/* Saved Timers Sidebar */}
-            <aside className="presets-sidebar" aria-label="Saved Timers">
-              <div className="sidebar-header">
-                <h2 className="sidebar-title">Saved Timers</h2>
-                <div className="sidebar-actions">
-                  <button
-                    type="button"
-                    className="btn-ghost small"
-                    onClick={() => setIsImportExportOpen(true)}
-                    title="Export or Import JSON"
-                  >
-                    <FileJson size={15} strokeWidth={1.6} />
-                    <span>JSON</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-solid small"
-                    onClick={() => {
-                      setEditingTimer(null);
-                      setIsEditorOpen(true);
-                    }}
-                  >
-                    <Plus size={15} strokeWidth={1.8} />
-                    <span>New Timer</span>
-                  </button>
-                </div>
-              </div>
-
-              {allTags.length > 0 && (
-                <div className="tags-filter-bar" aria-label="Filter timers by tag">
-                  <button
-                    type="button"
-                    className={`tag-filter-pill ${
-                      selectedTags.length === 0 ? 'active' : ''
-                    }`}
-                    onClick={() => setSelectedTags([])}
-                  >
-                    All ({timers.length})
-                  </button>
-                  {allTags.map((tag) => {
-                    const isTagSelected = selectedTags.some(
-                      (t) => t.toLowerCase() === tag.toLowerCase()
-                    );
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        className={`tag-filter-pill ${isTagSelected ? 'active' : ''}`}
-                        onClick={() => handleToggleTagFilter(tag)}
-                      >
-                        <Tag size={11} strokeWidth={1.7} />
-                        <span>{tag}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {filteredTimers.length === 0 ? (
-                <div className="empty-state small">
-                  <p>No timers match the selected tag filter.</p>
-                  <button
-                    type="button"
-                    className="btn-ghost small"
-                    style={{ marginTop: '0.5rem' }}
-                    onClick={() => setSelectedTags([])}
-                  >
-                    Clear tag filter
-                  </button>
-                </div>
-              ) : (
-                <ul className="presets-list">
-                  {filteredTimers.map((item) => {
-                    const isSelected = item.id === activeTimer.id;
-                    const totalSec = getTotalTimerDurationSec(item);
-                    const roundsPerLap =
-                      item.kind === 'workout' ? item.rounds ?? 1 : 1;
-                    return (
-                      <li
-                        key={item.id}
-                        className={`preset-card ${isSelected ? 'selected' : ''}`}
-                        onClick={() => setActiveTimerId(item.id)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            setActiveTimerId(item.id);
-                          }
-                        }}
-                      >
-                        <div className="preset-card-main">
-                          <div className="preset-title-row">
-                            <span className="preset-kind-icon">
-                              {item.kind === 'workout' ? (
-                                <Repeat size={14} strokeWidth={1.7} />
-                              ) : (
-                                <Clock size={14} strokeWidth={1.7} />
-                              )}
-                            </span>
-                            <span className="preset-name">{item.name}</span>
-                          </div>
-
-                          <div className="preset-details">
-                            {item.kind === 'workout' ? (
-                              <>
-                                <span>
-                                  {item.laps} {item.laps === 1 ? 'lap' : 'laps'} ×{' '}
-                                  {roundsPerLap}{' '}
-                                  {roundsPerLap === 1 ? 'round' : 'rounds'}
-                                </span>
-                                <span>·</span>
-                                <span className="work-tag">
-                                  {formatHumanDuration(item.workSec)} work
-                                </span>
-                                <span>/</span>
-                                <span className="break-tag">
-                                  {formatHumanDuration(item.breakSec)} short
-                                </span>
-                                {item.longBreakSec ? (
-                                  <>
-                                    <span>/</span>
-                                    <span className="long-break-tag">
-                                      {formatHumanDuration(item.longBreakSec)} long
-                                    </span>
-                                  </>
-                                ) : null}
-                              </>
-                            ) : (
-                              <span>
-                                Simple · {formatHumanDuration(item.durationSec)}
-                              </span>
-                            )}
-                            <span>·</span>
-                            <span>Total {formatHumanDuration(totalSec)}</span>
-                          </div>
-
-                          {item.tags && item.tags.length > 0 && (
-                            <div
-                              className="preset-tags-row"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {item.tags.map((tag) => {
-                                const isActiveFilter = selectedTags.some(
-                                  (t) => t.toLowerCase() === tag.toLowerCase()
-                                );
-                                return (
-                                  <button
-                                    key={tag}
-                                    type="button"
-                                    className={`tag-chip interactive ${
-                                      isActiveFilter ? 'active' : ''
-                                    }`}
-                                    onClick={() => handleToggleTagFilter(tag)}
-                                    title={`Filter by #${tag}`}
-                                  >
-                                    #{tag}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-
-                        <div
-                          className="preset-card-actions"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            type="button"
-                            className="icon-btn small"
-                            aria-label={`Edit ${item.name}`}
-                            title="Edit timer"
-                            onClick={() => {
-                              setEditingTimer(item);
-                              setIsEditorOpen(true);
-                            }}
-                          >
-                            <Edit3 size={14} strokeWidth={1.6} />
-                          </button>
-                          {timers.length > 1 && (
-                            <button
-                              type="button"
-                              className="icon-btn small danger-hover"
-                              aria-label={`Delete ${item.name}`}
-                              title="Delete timer"
-                              onClick={() => handleDeleteTimer(item.id)}
-                            >
-                              <Trash2 size={14} strokeWidth={1.6} />
-                            </button>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </aside>
-          </div>
+          </Screen>
         )}
 
-        {activeView === 'stats' && (
-          <StatsAndHistory
+        <Screen
+          id="stats"
+          activeScreen={activeScreen}
+          ariaLabel="Stats Screen"
+        >
+          <StatsScreen
             history={history}
             onClearHistory={handleClearHistory}
           />
-        )}
+        </Screen>
 
-        {activeView === 'palette' && (
-          <PaletteEditor
+        <Screen
+          id="palette"
+          activeScreen={activeScreen}
+          ariaLabel="Palette Screen"
+        >
+          <PaletteScreen
             activePalette={activePalette}
             customPalettes={customPalettes}
             onSelectPalette={setActivePalette}
             onSaveCustomPalette={handleSaveCustomPalette}
             onDeleteCustomPalette={handleDeleteCustomPalette}
           />
-        )}
+        </Screen>
       </main>
 
       {/* Modals */}
@@ -525,4 +453,3 @@ export const App: React.FC = () => {
 };
 
 export default App;
-

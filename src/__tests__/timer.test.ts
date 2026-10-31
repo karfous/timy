@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import React, { act } from 'react';
+import ReactDOM from 'react-dom/client';
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   buildTimerPhases,
@@ -18,6 +20,8 @@ import {
   parseImportedTimersJson,
 } from '../services/storage';
 import { WorkoutTimerConfig, SimpleTimerConfig } from '../types/timer';
+import { parseScreenFromHash } from '../components/Screen';
+import { App } from '../App';
 
 describe('Timer Phase & 5-Second Countdown Engine', () => {
   it('builds phases for a workout timer with prep, work, and break on every lap', () => {
@@ -227,4 +231,92 @@ describe('Storage, Palettes, History & JSON Import/Export', () => {
     expect(parsedNew[0].prepSec).toBe(5);
   });
 });
+
+describe('Screen Routing, Mobile Hamburger Overlay & Workout Screen Lock', () => {
+  beforeEach(() => {
+    (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
+    window.localStorage.clear();
+    window.location.hash = '#/timers';
+    document.documentElement.classList.remove('workout-screen-locked');
+    document.body.classList.remove('workout-screen-locked');
+  });
+
+  it('parses valid screen routes from hash and falls back to timers', () => {
+    expect(parseScreenFromHash('#/timers')).toBe('timers');
+    expect(parseScreenFromHash('#/workout')).toBe('workout');
+    expect(parseScreenFromHash('#/stats')).toBe('stats');
+    expect(parseScreenFromHash('#/palette')).toBe('palette');
+    expect(parseScreenFromHash('#/unknown')).toBe('timers');
+    expect(parseScreenFromHash('')).toBe('timers');
+  });
+
+  it('shows only timers on Timers screen, switches to non-scrollable Workout screen on timer selection, and toggles Hamburger/X overlay menu', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = ReactDOM.createRoot(container);
+
+    act(() => {
+      root.render(React.createElement(App));
+    });
+
+    // Initially on Timers screen: shows Saved Timers, no Workout runner rendered
+    expect(container.querySelector('[data-screen="timers"]')).not.toBeNull();
+    expect(container.querySelector('[data-screen="workout"]')).toBeNull();
+    expect(document.body.classList.contains('workout-screen-locked')).toBe(false);
+
+    // Click a timer card to choose it -> switches to Workout screen with locked viewport
+    const firstPresetCard = container.querySelector('.preset-card') as HTMLElement;
+    expect(firstPresetCard).not.toBeNull();
+
+    act(() => {
+      firstPresetCard.click();
+    });
+
+    expect(window.location.hash).toBe('#/workout');
+    expect(container.querySelector('[data-screen="workout"]')).not.toBeNull();
+    expect(container.querySelector('[data-screen="timers"]')).toBeNull();
+    expect(document.body.classList.contains('workout-screen-locked')).toBe(true);
+    expect(
+      container.querySelector('.app-shell')?.classList.contains('app-shell-locked')
+    ).toBe(true);
+
+    // Click Hamburger button -> opens overlay with 3 options (Timers, Stats, Palette) and switches button to X state
+    const hamburgerBtn = container.querySelector('.hamburger-btn') as HTMLButtonElement;
+    expect(hamburgerBtn.classList.contains('is-open')).toBe(false);
+    expect(container.querySelector('.mobile-menu-overlay')).toBeNull();
+
+    act(() => {
+      hamburgerBtn.click();
+    });
+
+    expect(hamburgerBtn.classList.contains('is-open')).toBe(true);
+    expect(hamburgerBtn.getAttribute('aria-label')).toContain('Close');
+    const overlayItems = Array.from(
+      container.querySelectorAll('.mobile-menu-item')
+    ).map((el) => el.textContent?.trim());
+    expect(overlayItems).toHaveLength(3);
+    expect(overlayItems[0]).toBe('Timers');
+    expect(overlayItems[1]).toContain('Stats');
+    expect(overlayItems[2]).toBe('Palette');
+
+    // Click Palette in overlay -> switches to Palette screen, closes overlay, unlocks viewport
+    const paletteItem = container.querySelectorAll(
+      '.mobile-menu-item'
+    )[2] as HTMLButtonElement;
+    act(() => {
+      paletteItem.click();
+    });
+
+    expect(window.location.hash).toBe('#/palette');
+    expect(container.querySelector('[data-screen="palette"]')).not.toBeNull();
+    expect(container.querySelector('.mobile-menu-overlay')).toBeNull();
+    expect(document.body.classList.contains('workout-screen-locked')).toBe(false);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+});
+
 

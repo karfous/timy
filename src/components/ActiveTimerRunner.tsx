@@ -11,6 +11,7 @@ import {
   Timer as TimerIcon,
   Sparkles,
   CheckCircle2,
+  ArrowLeft,
 } from 'lucide-react';
 import { TimerDefinition, PhaseType } from '../types/timer';
 import {
@@ -25,6 +26,7 @@ interface ActiveTimerRunnerProps {
   timer: TimerDefinition;
   muted: boolean;
   onToggleMute: () => void;
+  onBackToTimers?: () => void;
   onWorkoutFinished: (entry: {
     timerId: string;
     timerName: string;
@@ -40,6 +42,7 @@ export const ActiveTimerRunner: React.FC<ActiveTimerRunnerProps> = ({
   timer,
   muted,
   onToggleMute,
+  onBackToTimers,
   onWorkoutFinished,
 }) => {
   const phases = useMemo(() => buildTimerPhases(timer), [timer]);
@@ -288,6 +291,17 @@ export const ActiveTimerRunner: React.FC<ActiveTimerRunnerProps> = ({
       <div className="runner-header">
         <div className="runner-title-group">
           <div className="runner-title-row">
+            {onBackToTimers && (
+              <button
+                type="button"
+                className="icon-btn small back-timers-btn"
+                onClick={onBackToTimers}
+                aria-label="Back to Timers"
+                title="Back to Timers"
+              >
+                <ArrowLeft size={15} strokeWidth={1.7} />
+              </button>
+            )}
             <h2 className="runner-timer-name">{timer.name}</h2>
             {timer.tags && timer.tags.length > 0 && (
               <div className="runner-tags-row">
@@ -312,7 +326,7 @@ export const ActiveTimerRunner: React.FC<ActiveTimerRunnerProps> = ({
 
         <button
           type="button"
-          className="icon-btn"
+          className="icon-btn runner-mute-btn"
           onClick={onToggleMute}
           aria-label={muted ? 'Unmute audio beeps' : 'Mute audio beeps'}
           title={muted ? 'Audio muted (click to unmute)' : '5s countdown beeps enabled'}
@@ -398,30 +412,30 @@ export const ActiveTimerRunner: React.FC<ActiveTimerRunnerProps> = ({
             {formatMMSS(snapshot.phaseRemainingCeilSec)}
           </div>
 
-          {snapshot.isLastFiveSeconds && (
-            <div className="five-sec-alert">
-              Beep · {snapshot.phaseRemainingCeilSec}s to{' '}
-              {nextPhase ? nextPhase.label : 'Finish'}
-            </div>
-          )}
-
-          {!snapshot.isLastFiveSeconds && (
-            <div className="runner-meta-row">
-              {timer.kind === 'workout' && (
-                <>
-                  <span className="lap-pill">
-                    Lap {snapshot.currentPhase.lap}/{snapshot.currentPhase.totalLaps}
-                  </span>
-                  <span className="lap-pill">
-                    Round {snapshot.currentPhase.round}/{snapshot.currentPhase.totalRounds}
-                  </span>
-                </>
-              )}
-              <span className="total-remaining-text">
-                Left {formatMMSS(snapshot.totalRemainingSec)}
-              </span>
-            </div>
-          )}
+          <div className="runner-status-slot">
+            {snapshot.isLastFiveSeconds ? (
+              <div className="five-sec-alert">
+                Beep · {snapshot.phaseRemainingCeilSec}s to{' '}
+                {nextPhase ? nextPhase.label : 'Finish'}
+              </div>
+            ) : (
+              <div className="runner-meta-row">
+                {timer.kind === 'workout' && (
+                  <>
+                    <span className="lap-pill">
+                      Lap {snapshot.currentPhase.lap}/{snapshot.currentPhase.totalLaps}
+                    </span>
+                    <span className="lap-pill">
+                      Round {snapshot.currentPhase.round}/{snapshot.currentPhase.totalRounds}
+                    </span>
+                  </>
+                )}
+                <span className="total-remaining-text">
+                  Left {formatMMSS(snapshot.totalRemainingSec)}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
