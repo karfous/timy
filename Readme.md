@@ -14,8 +14,9 @@ A clean, thin, modern, dark-mode-first **Workout & Interval Timer** built with *
   - Synthesized Web Audio API beeps play during the final **5 seconds (`5, 4, 3, 2, 1`)** of every round/phase before transitioning, plus distinct start/break/completion chimes.
 - **`localStorage` Persistence**:
   - Automatically saves your custom color palettes, timer definitions, active timer selection, and workout run history/statistics across page refreshes.
-- **Export & Import JSON**:
+- **Export & Import JSON + Extensible Default Timers**:
   - Export your timer definitions to a `.json` file (or clipboard) and import timer definitions anytime.
+  - Default timers live in `src/defaultTimers/*.json` — drop a new `.json` file into `src/defaultTimers/` and it will automatically be registered as a default timer in the app.
 - **Offline PWA & GitHub Pages Ready**:
   - Configured with `vite-plugin-pwa` (Service Worker precaching + Web App Manifest) and relative asset paths (`base: './'`) plus `.github/workflows/deploy.yml`.
 

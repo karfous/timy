@@ -1,0 +1,9 @@
+{
+  "id": "preset-plank",
+  "name": "Quick 2m Hold",
+  "kind": "simple",
+  "durationSec": 120,
+  "prepSec": 5,
+  "createdAt": 1700000004000
+}
+

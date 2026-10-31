@@ -6,6 +6,8 @@ import {
   getTotalTimerDurationSec,
 } from '../utils/timerEngine';
 import {
+  DEFAULT_TIMERS,
+  parseDefaultTimerModules,
   loadTimers,
   saveTimers,
   loadActivePalette,
@@ -161,6 +163,32 @@ describe('Storage, Palettes, History & JSON Import/Export', () => {
     const reimported = parseImportedTimersJson(json);
     expect(reimported.length).toBe(timers.length);
     expect(reimported[0].name).toBe(timers[0].name);
+  });
+
+  it('loads default timers from src/defaultTimers/*.json and supports adding new JSON files', () => {
+    expect(DEFAULT_TIMERS.length).toBeGreaterThanOrEqual(4);
+    expect(DEFAULT_TIMERS.map((t) => t.id)).toEqual(
+      expect.arrayContaining([
+        'preset-tabata',
+        'preset-boxing',
+        'preset-emom',
+        'preset-plank',
+      ])
+    );
+
+    const parsedNew = parseDefaultTimerModules({
+      '../defaultTimers/stretching.json': {
+        default: {
+          name: 'Morning Mobility',
+          kind: 'simple',
+          durationSec: 180,
+        },
+      },
+    });
+    expect(parsedNew).toHaveLength(1);
+    expect(parsedNew[0].id).toBe('preset-stretching');
+    expect(parsedNew[0].name).toBe('Morning Mobility');
+    expect(parsedNew[0].prepSec).toBe(5);
   });
 });
 

@@ -7,6 +7,7 @@ import {
 
 const KEYS = {
   TIMERS: 'pulse_timers_v1',
+  SEEDED_DEFAULT_IDS: 'pulse_seeded_default_ids_v1',
   ACTIVE_TIMER_ID: 'pulse_active_timer_id_v1',
   PALETTES: 'pulse_custom_palettes_v1',
   ACTIVE_PALETTE: 'pulse_active_palette_v1',
@@ -65,46 +66,103 @@ export const DEFAULT_PALETTES: ColorPalette[] = [
   },
 ];
 
-export const DEFAULT_TIMERS: TimerDefinition[] = [
-  {
-    id: 'preset-tabata',
-    name: 'Tabata HIIT',
+const defaultTimerModules = import.meta.glob('../defaultTimers/*.json', {
+  eager: true,
+});
+
+function sanitizeTimerEntry(
+  item: unknown,
+  fallbackId: string,
+  fallbackCreatedAt: number
+): TimerDefinition | null {
+  if (!isValidTimerDefinition(item)) return null;
+  const raw = item as unknown as Record<string, unknown>;
+  const id =
+    typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : fallbackId;
+  const createdAt =
+    typeof raw.createdAt === 'number' ? raw.createdAt : fallbackCreatedAt;
+  const prepSec =
+    typeof raw.prepSec === 'number' && raw.prepSec >= 0
+      ? Math.floor(raw.prepSec)
+      : 5;
+
+  if (item.kind === 'simple') {
+    return {
+      id,
+      name: item.name.trim(),
+      kind: 'simple',
+      durationSec: Math.max(1, Math.floor(item.durationSec)),
+      prepSec,
+      createdAt,
+    };
+  }
+  return {
+    id,
+    name: item.name.trim(),
     kind: 'workout',
-    laps: 8,
-    workSec: 20,
-    breakSec: 10,
-    prepSec: 5,
-    createdAt: 1700000001000,
-  },
-  {
-    id: 'preset-boxing',
-    name: 'Boxing Rounds',
-    kind: 'workout',
-    laps: 5,
-    workSec: 180,
-    breakSec: 60,
-    prepSec: 5,
-    createdAt: 1700000002000,
-  },
-  {
-    id: 'preset-emom',
-    name: 'Circuit 45 / 15',
-    kind: 'workout',
-    laps: 6,
-    workSec: 45,
-    breakSec: 15,
-    prepSec: 5,
-    createdAt: 1700000003000,
-  },
-  {
-    id: 'preset-plank',
-    name: 'Quick 2m Hold',
-    kind: 'simple',
-    durationSec: 120,
-    prepSec: 5,
-    createdAt: 1700000004000,
-  },
-];
+    laps: Math.max(1, Math.floor(item.laps)),
+    workSec: Math.max(1, Math.floor(item.workSec)),
+    breakSec: Math.max(0, Math.floor(item.breakSec)),
+    prepSec,
+    createdAt,
+  };
+}
+
+export function parseDefaultTimerModules(
+  modules: Record<string, unknown>
+): TimerDefinition[] {
+  const results: TimerDefinition[] = [];
+  const entries = Object.entries(modules).sort(([pathA], [pathB]) =>
+    pathA.localeCompare(pathB)
+  );
+
+  entries.forEach(([filePath, mod], fileIndex) => {
+    const payload =
+      mod && typeof mod === 'object' && 'default' in mod
+        ? (mod as { default: unknown }).default
+        : mod;
+
+    const fileSlug =
+      filePath
+        .split('/')
+        .pop()
+        ?.replace(/\.json$/i, '')
+        .trim() || `file-${fileIndex + 1}`;
+
+    let rawList: unknown[] = [];
+    if (Array.isArray(payload)) {
+      rawList = payload;
+    } else if (payload && typeof payload === 'object') {
+      const obj = payload as Record<string, unknown>;
+      if (Array.isArray(obj.timers)) {
+        rawList = obj.timers;
+      } else {
+        rawList = [obj];
+      }
+    }
+
+    rawList.forEach((rawItem, itemIndex) => {
+      const fallbackId =
+        rawList.length === 1
+          ? `preset-${fileSlug}`
+          : `preset-${fileSlug}-${itemIndex + 1}`;
+      const fallbackCreatedAt = 1700000100000 + fileIndex * 1000 + itemIndex;
+      const sanitized = sanitizeTimerEntry(
+        rawItem,
+        fallbackId,
+        fallbackCreatedAt
+      );
+      if (sanitized) {
+        results.push(sanitized);
+      }
+    });
+  });
+
+  return results.sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export const DEFAULT_TIMERS: TimerDefinition[] =
+  parseDefaultTimerModules(defaultTimerModules);
 
 function safeGetItem(key: string): string | null {
   try {
@@ -122,6 +180,22 @@ function safeSetItem(key: string, value: string): void {
   }
 }
 
+function loadSeededDefaultIds(): Set<string> | null {
+  const raw = safeGetItem(KEYS.SEEDED_DEFAULT_IDS);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    return new Set(parsed.filter((id): id is string => typeof id === 'string'));
+  } catch {
+    return null;
+  }
+}
+
+function saveSeededDefaultIds(ids: Iterable<string>): void {
+  safeSetItem(KEYS.SEEDED_DEFAULT_IDS, JSON.stringify(Array.from(ids)));
+}
+
 export function loadTimers(): TimerDefinition[] {
   const raw = safeGetItem(KEYS.TIMERS);
   if (!raw) {
@@ -131,10 +205,31 @@ export function loadTimers(): TimerDefinition[] {
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) {
+      saveTimers(DEFAULT_TIMERS);
       return DEFAULT_TIMERS;
     }
     const valid = parsed.filter(isValidTimerDefinition);
-    return valid.length > 0 ? valid : DEFAULT_TIMERS;
+    if (valid.length === 0) {
+      saveTimers(DEFAULT_TIMERS);
+      return DEFAULT_TIMERS;
+    }
+
+    // Check if new default timer JSON files were added to src/defaultTimers/
+    const seededIds = loadSeededDefaultIds();
+    const existingIds = new Set(valid.map((t) => t.id));
+    const newDefaultTimers = DEFAULT_TIMERS.filter((def) => {
+      if (existingIds.has(def.id)) return false;
+      // If seededIds exists, only add defaults that have never been seeded before
+      return seededIds ? !seededIds.has(def.id) : true;
+    });
+
+    if (newDefaultTimers.length > 0 || !seededIds) {
+      const merged = [...valid, ...newDefaultTimers];
+      saveTimers(merged);
+      return merged;
+    }
+
+    return valid;
   } catch {
     return DEFAULT_TIMERS;
   }
@@ -142,6 +237,16 @@ export function loadTimers(): TimerDefinition[] {
 
 export function saveTimers(timers: TimerDefinition[]): void {
   safeSetItem(KEYS.TIMERS, JSON.stringify(timers));
+  const seeded = loadSeededDefaultIds() ?? new Set<string>();
+  for (const def of DEFAULT_TIMERS) {
+    seeded.add(def.id);
+  }
+  for (const t of timers) {
+    if (DEFAULT_TIMERS.some((def) => def.id === t.id)) {
+      seeded.add(t.id);
+    }
+  }
+  saveSeededDefaultIds(seeded);
 }
 
 export function loadActiveTimerId(timers: TimerDefinition[]): string {

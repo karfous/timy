@@ -1,0 +1,11 @@
+{
+  "id": "preset-emom",
+  "name": "Circuit 45 / 15",
+  "kind": "workout",
+  "laps": 6,
+  "workSec": 45,
+  "breakSec": 15,
+  "prepSec": 5,
+  "createdAt": 1700000003000
+}
+

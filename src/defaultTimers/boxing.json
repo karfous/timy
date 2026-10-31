@@ -1,0 +1,11 @@
+{
+  "id": "preset-boxing",
+  "name": "Boxing Rounds",
+  "kind": "workout",
+  "laps": 5,
+  "workSec": 180,
+  "breakSec": 60,
+  "prepSec": 5,
+  "createdAt": 1700000002000
+}
+

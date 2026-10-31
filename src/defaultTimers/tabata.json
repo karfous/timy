@@ -1,0 +1,11 @@
+{
+  "id": "preset-tabata",
+  "name": "Tabata HIIT",
+  "kind": "workout",
+  "laps": 8,
+  "workSec": 20,
+  "breakSec": 10,
+  "prepSec": 5,
+  "createdAt": 1700000001000
+}
+
