@@ -446,6 +446,162 @@ textarea {
   color: var(--accent-break);
 }
 
+.long-break-tag {
+  color: var(--accent-warn);
+}
+
+.runner-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.runner-tags-row,
+.preset-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.preset-tags-row {
+  margin-top: 0.15rem;
+}
+
+.tags-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.38rem;
+  padding-bottom: 0.25rem;
+}
+
+.tag-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.24rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.tag-filter-pill:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.tag-filter-pill.active {
+  background-color: color-mix(in oklab, var(--accent-primary) 16%, var(--bg-primary));
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.12rem 0.48rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  background-color: color-mix(in oklab, var(--text-primary) 7%, var(--bg-primary));
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+
+.tag-chip.interactive {
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.tag-chip.interactive:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.tag-chip.interactive.active {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background-color: color-mix(in oklab, var(--accent-primary) 14%, var(--bg-primary));
+}
+
+.tag-chip.editable {
+  background-color: color-mix(in oklab, var(--accent-primary) 14%, var(--bg-surface));
+  border-color: color-mix(in oklab, var(--accent-primary) 45%, var(--border-subtle));
+  color: var(--text-primary);
+  padding: 0.18rem 0.45rem 0.18rem 0.55rem;
+  font-size: 0.74rem;
+}
+
+.tag-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.05rem;
+  border-radius: 50%;
+}
+
+.tag-chip-remove:hover {
+  color: #f87171;
+}
+
+.tags-editor-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.38rem;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 0.42rem 0.6rem;
+}
+
+.tags-editor-box:focus-within {
+  border-color: var(--accent-primary);
+}
+
+.tag-inline-input {
+  flex: 1;
+  min-width: 140px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.82rem;
+  padding: 0.15rem 0.2rem;
+}
+
+.tag-suggestions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.tag-suggestion-pill {
+  background-color: var(--bg-primary);
+  border: 1px dashed var(--border-subtle);
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.tag-suggestion-pill:hover {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
 .preset-card-actions {
   display: flex;
   align-items: center;
@@ -708,6 +864,10 @@ textarea {
   gap: 1.1rem;
 }
 
+.modal-panel.editor-modal {
+  max-width: 720px;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -794,6 +954,12 @@ textarea {
   border-color: var(--accent-primary);
 }
 
+.laps-rounds-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
 .laps-control-bar {
   display: flex;
   align-items: center;
@@ -849,6 +1015,19 @@ textarea {
 
 .dials-grid.dual-dial {
   grid-template-columns: 1fr 1fr;
+}
+
+.dials-grid.triple-dial {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 680px) {
+  .dials-grid.triple-dial {
+    grid-template-columns: 1fr;
+  }
+  .laps-rounds-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 540px) {

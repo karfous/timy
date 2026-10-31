@@ -4,6 +4,6 @@
   "kind": "simple",
   "durationSec": 120,
   "prepSec": 5,
+  "tags": ["core", "mobility"],
   "createdAt": 1700000004000
 }
-

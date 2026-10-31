@@ -87,6 +87,42 @@ describe('Timer Phase & 5-Second Countdown Engine', () => {
     expect(snapFinal.phaseRemainingCeilSec).toBe(5);
     expect(snapFinal.isLastFiveSeconds).toBe(true);
   });
+
+  it('builds laps and rounds with short breaks between rounds and long breaks between laps', () => {
+    const workout: WorkoutTimerConfig = {
+      id: 'w-laps-rounds',
+      name: '3 Laps × 5 Rounds',
+      kind: 'workout',
+      laps: 3,
+      rounds: 5,
+      workSec: 30,
+      breakSec: 10,
+      longBreakSec: 60,
+      prepSec: 5,
+      tags: ['hiit', 'endurance'],
+      createdAt: 1000,
+    };
+
+    const phases = buildTimerPhases(workout);
+    // 1 prep + 3 laps * (5 work + 4 short breaks) + 2 long breaks between laps = 1 + 27 + 2 = 30 phases
+    expect(phases).toHaveLength(30);
+
+    const workPhases = phases.filter((p) => p.type === 'work');
+    const shortBreakPhases = phases.filter(
+      (p) => p.type === 'break' && !p.isLongBreak
+    );
+    const longBreakPhases = phases.filter(
+      (p) => p.type === 'break' && p.isLongBreak
+    );
+
+    expect(workPhases).toHaveLength(15); // 3 * 5
+    expect(shortBreakPhases).toHaveLength(12); // 3 * 4
+    expect(longBreakPhases).toHaveLength(2); // 3 - 1
+    expect(longBreakPhases[0].durationSec).toBe(60);
+    expect(getTotalTimerDurationSec(workout)).toBe(
+      5 + 3 * (5 * 30 + 4 * 10) + 2 * 60
+    );
+  });
 });
 
 describe('Storage, Palettes, History & JSON Import/Export', () => {

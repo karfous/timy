@@ -8,8 +8,10 @@ A clean, thin, modern, dark-mode-first **Workout & Interval Timer** built with *
   - Default dark theme (`Obsidian Dark`) plus built-in themes and a live **Color Palette Editor** saved to `localStorage`.
 - **Two Concentric Circular Time Dials + Direct Numeric Input**:
   - Drag the **outer ring** for **Minutes (`0–60`)** and the **inner ring** for **Seconds (`0–59`)**, or type numbers directly in the center (`MM:SS` or total seconds).
-- **Simple & Workout Interval Timers**:
-  - Define **Simple Countdown Timers** or **Workout Interval Timers** with configurable **Number of Laps**, **Working Time**, **Break Time**, and optional **Prepare Countdown**.
+- **Simple & Workout Interval Timers (Laps & Rounds)**:
+  - Define **Simple Countdown Timers** or **Workout Interval Timers** with configurable **Laps**, **Rounds per Lap**, **Working Time**, **Short Break** (between rounds), **Long Break** (between laps), and optional **Prepare Countdown**.
+- **Tags & Tag Filtering**:
+  - Assign multiple string tags (`tags: string[]`) to any timer and filter saved timers by clicking one or more tags in the sidebar or on timer cards.
 - **5-Second Countdown Beeps in Every Round**:
   - Synthesized Web Audio API beeps play during the final **5 seconds (`5, 4, 3, 2, 1`)** of every round/phase before transitioning, plus distinct start/break/completion chimes.
 - **`localStorage` Persistence**:

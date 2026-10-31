@@ -70,6 +70,23 @@ const defaultTimerModules = import.meta.glob('../defaultTimers/*.json', {
   eager: true,
 });
 
+export function normalizeTags(rawTags: unknown): string[] {
+  if (!Array.isArray(rawTags)) return [];
+  const seen = new Set<string>();
+  const clean: string[] = [];
+  for (const entry of rawTags) {
+    if (typeof entry !== 'string') continue;
+    const trimmed = entry.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      clean.push(trimmed);
+    }
+  }
+  return clean;
+}
+
 function sanitizeTimerEntry(
   item: unknown,
   fallbackId: string,
@@ -85,6 +102,7 @@ function sanitizeTimerEntry(
     typeof raw.prepSec === 'number' && raw.prepSec >= 0
       ? Math.floor(raw.prepSec)
       : 5;
+  const tags = normalizeTags(raw.tags);
 
   if (item.kind === 'simple') {
     return {
@@ -93,17 +111,31 @@ function sanitizeTimerEntry(
       kind: 'simple',
       durationSec: Math.max(1, Math.floor(item.durationSec)),
       prepSec,
+      tags,
       createdAt,
     };
   }
+
+  const rounds =
+    typeof raw.rounds === 'number' && raw.rounds >= 1
+      ? Math.max(1, Math.floor(raw.rounds))
+      : undefined;
+  const longBreakSec =
+    typeof raw.longBreakSec === 'number' && raw.longBreakSec >= 0
+      ? Math.max(0, Math.floor(raw.longBreakSec))
+      : undefined;
+
   return {
     id,
     name: item.name.trim(),
     kind: 'workout',
     laps: Math.max(1, Math.floor(item.laps)),
+    ...(rounds !== undefined ? { rounds } : {}),
     workSec: Math.max(1, Math.floor(item.workSec)),
     breakSec: Math.max(0, Math.floor(item.breakSec)),
+    ...(longBreakSec !== undefined ? { longBreakSec } : {}),
     prepSec,
+    tags,
     createdAt,
   };
 }
@@ -208,7 +240,32 @@ export function loadTimers(): TimerDefinition[] {
       saveTimers(DEFAULT_TIMERS);
       return DEFAULT_TIMERS;
     }
-    const valid = parsed.filter(isValidTimerDefinition);
+    const defaultMap = new Map(DEFAULT_TIMERS.map((d) => [d.id, d]));
+    let didBackfillDefaults = false;
+    const valid = parsed.filter(isValidTimerDefinition).map((item) => {
+      const def = defaultMap.get(item.id);
+      if (!def) return item;
+      let updated: TimerDefinition = item;
+      if (item.tags === undefined && def.tags && def.tags.length > 0) {
+        updated = { ...updated, tags: def.tags };
+        didBackfillDefaults = true;
+      }
+      if (
+        updated.kind === 'workout' &&
+        def.kind === 'workout' &&
+        updated.rounds === undefined &&
+        def.rounds !== undefined
+      ) {
+        updated = {
+          ...updated,
+          laps: def.laps,
+          rounds: def.rounds,
+          longBreakSec: def.longBreakSec,
+        };
+        didBackfillDefaults = true;
+      }
+      return updated;
+    });
     if (valid.length === 0) {
       saveTimers(DEFAULT_TIMERS);
       return DEFAULT_TIMERS;
@@ -223,7 +280,7 @@ export function loadTimers(): TimerDefinition[] {
       return seededIds ? !seededIds.has(def.id) : true;
     });
 
-    if (newDefaultTimers.length > 0 || !seededIds) {
+    if (newDefaultTimers.length > 0 || !seededIds || didBackfillDefaults) {
       const merged = [...valid, ...newDefaultTimers];
       saveTimers(merged);
       return merged;
@@ -470,38 +527,10 @@ export function parseImportedTimersJson(jsonText: string): TimerDefinition[] {
 
   const sanitized: TimerDefinition[] = [];
   for (const item of rawList) {
-    if (!isValidTimerDefinition(item)) continue;
-    const id =
-      typeof item.id === 'string' && item.id.trim()
-        ? item.id
-        : `timer-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const createdAt =
-      typeof item.createdAt === 'number' ? item.createdAt : Date.now();
-    const prepSec =
-      typeof item.prepSec === 'number' && item.prepSec >= 0
-        ? Math.floor(item.prepSec)
-        : 5;
-
-    if (item.kind === 'simple') {
-      sanitized.push({
-        id,
-        name: item.name.trim(),
-        kind: 'simple',
-        durationSec: Math.max(1, Math.floor(item.durationSec)),
-        prepSec,
-        createdAt,
-      });
-    } else {
-      sanitized.push({
-        id,
-        name: item.name.trim(),
-        kind: 'workout',
-        laps: Math.max(1, Math.floor(item.laps)),
-        workSec: Math.max(1, Math.floor(item.workSec)),
-        breakSec: Math.max(0, Math.floor(item.breakSec)),
-        prepSec,
-        createdAt,
-      });
+    const fallbackId = `timer-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const entry = sanitizeTimerEntry(item, fallbackId, Date.now());
+    if (entry) {
+      sanitized.push(entry);
     }
   }
 

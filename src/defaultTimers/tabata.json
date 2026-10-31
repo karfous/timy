@@ -2,10 +2,12 @@
   "id": "preset-tabata",
   "name": "Tabata HIIT",
   "kind": "workout",
-  "laps": 8,
+  "laps": 2,
+  "rounds": 4,
   "workSec": 20,
   "breakSec": 10,
+  "longBreakSec": 60,
   "prepSec": 5,
+  "tags": ["hiit", "cardio", "tabata"],
   "createdAt": 1700000001000
 }
-

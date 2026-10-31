@@ -6,6 +6,7 @@ export interface SimpleTimerConfig {
   kind: 'simple';
   durationSec: number;
   prepSec?: number;
+  tags?: string[];
   createdAt: number;
 }
 
@@ -14,9 +15,12 @@ export interface WorkoutTimerConfig {
   name: string;
   kind: 'workout';
   laps: number;
+  rounds?: number;
   workSec: number;
   breakSec: number;
+  longBreakSec?: number;
   prepSec?: number;
+  tags?: string[];
   createdAt: number;
 }
 
@@ -33,6 +37,9 @@ export interface TimerPhase {
   endSec: number;
   lap: number;
   totalLaps: number;
+  round: number;
+  totalRounds: number;
+  isLongBreak?: boolean;
 }
 
 export interface TimerSnapshot {

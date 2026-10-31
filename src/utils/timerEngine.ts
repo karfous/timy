@@ -13,6 +13,7 @@ export function buildTimerPhases(timer: TimerDefinition): TimerPhase[] {
 
   if (timer.kind === 'simple') {
     const totalLaps = 1;
+    const totalRounds = 1;
     if (prepSec > 0) {
       phases.push({
         index: phases.length,
@@ -23,6 +24,8 @@ export function buildTimerPhases(timer: TimerDefinition): TimerPhase[] {
         endSec: cursorSec + prepSec,
         lap: 1,
         totalLaps,
+        round: 1,
+        totalRounds,
       });
       cursorSec += prepSec;
     }
@@ -37,14 +40,20 @@ export function buildTimerPhases(timer: TimerDefinition): TimerPhase[] {
       endSec: cursorSec + duration,
       lap: 1,
       totalLaps,
+      round: 1,
+      totalRounds,
     });
     return phases;
   }
 
   // Workout timer
   const totalLaps = Math.max(1, Math.floor(timer.laps));
+  const totalRounds = Math.max(1, Math.floor(timer.rounds ?? 1));
   const workSec = Math.max(1, Math.floor(timer.workSec));
   const breakSec = Math.max(0, Math.floor(timer.breakSec));
+  const hasRoundsOrLongBreak =
+    timer.rounds !== undefined || timer.longBreakSec !== undefined;
+  const longBreakSec = Math.max(0, Math.floor(timer.longBreakSec ?? 0));
 
   if (prepSec > 0) {
     phases.push({
@@ -56,35 +65,112 @@ export function buildTimerPhases(timer: TimerDefinition): TimerPhase[] {
       endSec: cursorSec + prepSec,
       lap: 1,
       totalLaps,
+      round: 1,
+      totalRounds,
     });
     cursorSec += prepSec;
   }
 
-  for (let lap = 1; lap <= totalLaps; lap++) {
-    phases.push({
-      index: phases.length,
-      type: 'work',
-      label: `Work · Round ${lap}`,
-      durationSec: workSec,
-      startSec: cursorSec,
-      endSec: cursorSec + workSec,
-      lap,
-      totalLaps,
-    });
-    cursorSec += workSec;
+  if (!hasRoundsOrLongBreak) {
+    // Legacy single-level workout timer (laps only)
+    for (let lap = 1; lap <= totalLaps; lap++) {
+      phases.push({
+        index: phases.length,
+        type: 'work',
+        label: `Work · Round ${lap}`,
+        durationSec: workSec,
+        startSec: cursorSec,
+        endSec: cursorSec + workSec,
+        lap,
+        totalLaps,
+        round: 1,
+        totalRounds: 1,
+      });
+      cursorSec += workSec;
 
-    if (breakSec > 0) {
+      if (breakSec > 0) {
+        phases.push({
+          index: phases.length,
+          type: 'break',
+          label: `Break · Round ${lap}`,
+          durationSec: breakSec,
+          startSec: cursorSec,
+          endSec: cursorSec + breakSec,
+          lap,
+          totalLaps,
+          round: 1,
+          totalRounds: 1,
+          isLongBreak: false,
+        });
+        cursorSec += breakSec;
+      }
+    }
+    return phases;
+  }
+
+  // Multi-round per lap workout timer:
+  // - Short break (`breakSec`) between rounds within a lap
+  // - Long break (`longBreakSec`) between laps
+  for (let lap = 1; lap <= totalLaps; lap++) {
+    for (let round = 1; round <= totalRounds; round++) {
+      const workLabel =
+        totalLaps > 1
+          ? `Work · Lap ${lap}/${totalLaps} · Round ${round}/${totalRounds}`
+          : `Work · Round ${round}/${totalRounds}`;
+
+      phases.push({
+        index: phases.length,
+        type: 'work',
+        label: workLabel,
+        durationSec: workSec,
+        startSec: cursorSec,
+        endSec: cursorSec + workSec,
+        lap,
+        totalLaps,
+        round,
+        totalRounds,
+      });
+      cursorSec += workSec;
+
+      // Short break between rounds within the same lap
+      if (round < totalRounds && breakSec > 0) {
+        const shortBreakLabel =
+          totalLaps > 1
+            ? `Short Break · Lap ${lap} · Round ${round}`
+            : `Short Break · Round ${round}`;
+        phases.push({
+          index: phases.length,
+          type: 'break',
+          label: shortBreakLabel,
+          durationSec: breakSec,
+          startSec: cursorSec,
+          endSec: cursorSec + breakSec,
+          lap,
+          totalLaps,
+          round,
+          totalRounds,
+          isLongBreak: false,
+        });
+        cursorSec += breakSec;
+      }
+    }
+
+    // Long break between laps
+    if (lap < totalLaps && longBreakSec > 0) {
       phases.push({
         index: phases.length,
         type: 'break',
-        label: `Break · Round ${lap}`,
-        durationSec: breakSec,
+        label: `Long Break · After Lap ${lap}`,
+        durationSec: longBreakSec,
         startSec: cursorSec,
-        endSec: cursorSec + breakSec,
+        endSec: cursorSec + longBreakSec,
         lap,
         totalLaps,
+        round: totalRounds,
+        totalRounds,
+        isLongBreak: true,
       });
-      cursorSec += breakSec;
+      cursorSec += longBreakSec;
     }
   }
 
@@ -113,6 +199,8 @@ export function computeTimerSnapshot(
       endSec: 1,
       lap: 1,
       totalLaps: 1,
+      round: 1,
+      totalRounds: 1,
     };
     return {
       isComplete: true,

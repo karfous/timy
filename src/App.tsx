@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Plus,
   Edit3,
@@ -9,6 +9,7 @@ import {
   Timer as TimerIcon,
   Repeat,
   Clock,
+  Tag,
 } from 'lucide-react';
 import {
   ColorPalette,
@@ -68,6 +69,44 @@ export const App: React.FC = () => {
   const [editingTimer, setEditingTimer] = useState<TimerDefinition | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Collect all unique tags across saved timers
+  const allTags = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const timer of timers) {
+      for (const tag of timer.tags ?? []) {
+        const clean = tag.trim();
+        if (!clean) continue;
+        const lower = clean.toLowerCase();
+        if (!map.has(lower)) {
+          map.set(lower, clean);
+        }
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
+  }, [timers]);
+
+  // Filter timers by selected tags
+  const filteredTimers = useMemo(() => {
+    if (selectedTags.length === 0) return timers;
+    return timers.filter((timer) => {
+      const timerTagsLower = (timer.tags ?? []).map((t) => t.toLowerCase());
+      return selectedTags.every((sel) =>
+        timerTagsLower.includes(sel.toLowerCase())
+      );
+    });
+  }, [timers, selectedTags]);
+
+  const handleToggleTagFilter = (tag: string) => {
+    setSelectedTags((prev) => {
+      const exists = prev.some((t) => t.toLowerCase() === tag.toLowerCase());
+      if (exists) {
+        return prev.filter((t) => t.toLowerCase() !== tag.toLowerCase());
+      }
+      return [...prev, tag];
+    });
+  };
 
   // Apply palette CSS variables on mount and whenever palette changes
   useEffect(() => {
@@ -270,91 +309,175 @@ export const App: React.FC = () => {
                 </div>
               </div>
 
-              <ul className="presets-list">
-                {timers.map((item) => {
-                  const isSelected = item.id === activeTimer.id;
-                  const totalSec = getTotalTimerDurationSec(item);
-                  return (
-                    <li
-                      key={item.id}
-                      className={`preset-card ${isSelected ? 'selected' : ''}`}
-                      onClick={() => setActiveTimerId(item.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          setActiveTimerId(item.id);
-                        }
-                      }}
-                    >
-                      <div className="preset-card-main">
-                        <div className="preset-title-row">
-                          <span className="preset-kind-icon">
-                            {item.kind === 'workout' ? (
-                              <Repeat size={14} strokeWidth={1.7} />
-                            ) : (
-                              <Clock size={14} strokeWidth={1.7} />
-                            )}
-                          </span>
-                          <span className="preset-name">{item.name}</span>
-                        </div>
-
-                        <div className="preset-details">
-                          {item.kind === 'workout' ? (
-                            <>
-                              <span>{item.laps} laps</span>
-                              <span>·</span>
-                              <span className="work-tag">
-                                {formatHumanDuration(item.workSec)} work
-                              </span>
-                              <span>/</span>
-                              <span className="break-tag">
-                                {formatHumanDuration(item.breakSec)} rest
-                              </span>
-                            </>
-                          ) : (
-                            <span>
-                              Simple · {formatHumanDuration(item.durationSec)}
-                            </span>
-                          )}
-                          <span>·</span>
-                          <span>Total {formatHumanDuration(totalSec)}</span>
-                        </div>
-                      </div>
-
-                      <div
-                        className="preset-card-actions"
-                        onClick={(e) => e.stopPropagation()}
+              {allTags.length > 0 && (
+                <div className="tags-filter-bar" aria-label="Filter timers by tag">
+                  <button
+                    type="button"
+                    className={`tag-filter-pill ${
+                      selectedTags.length === 0 ? 'active' : ''
+                    }`}
+                    onClick={() => setSelectedTags([])}
+                  >
+                    All ({timers.length})
+                  </button>
+                  {allTags.map((tag) => {
+                    const isTagSelected = selectedTags.some(
+                      (t) => t.toLowerCase() === tag.toLowerCase()
+                    );
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        className={`tag-filter-pill ${isTagSelected ? 'active' : ''}`}
+                        onClick={() => handleToggleTagFilter(tag)}
                       >
-                        <button
-                          type="button"
-                          className="icon-btn small"
-                          aria-label={`Edit ${item.name}`}
-                          title="Edit timer"
-                          onClick={() => {
-                            setEditingTimer(item);
-                            setIsEditorOpen(true);
-                          }}
+                        <Tag size={11} strokeWidth={1.7} />
+                        <span>{tag}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {filteredTimers.length === 0 ? (
+                <div className="empty-state small">
+                  <p>No timers match the selected tag filter.</p>
+                  <button
+                    type="button"
+                    className="btn-ghost small"
+                    style={{ marginTop: '0.5rem' }}
+                    onClick={() => setSelectedTags([])}
+                  >
+                    Clear tag filter
+                  </button>
+                </div>
+              ) : (
+                <ul className="presets-list">
+                  {filteredTimers.map((item) => {
+                    const isSelected = item.id === activeTimer.id;
+                    const totalSec = getTotalTimerDurationSec(item);
+                    const roundsPerLap =
+                      item.kind === 'workout' ? item.rounds ?? 1 : 1;
+                    return (
+                      <li
+                        key={item.id}
+                        className={`preset-card ${isSelected ? 'selected' : ''}`}
+                        onClick={() => setActiveTimerId(item.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setActiveTimerId(item.id);
+                          }
+                        }}
+                      >
+                        <div className="preset-card-main">
+                          <div className="preset-title-row">
+                            <span className="preset-kind-icon">
+                              {item.kind === 'workout' ? (
+                                <Repeat size={14} strokeWidth={1.7} />
+                              ) : (
+                                <Clock size={14} strokeWidth={1.7} />
+                              )}
+                            </span>
+                            <span className="preset-name">{item.name}</span>
+                          </div>
+
+                          <div className="preset-details">
+                            {item.kind === 'workout' ? (
+                              <>
+                                <span>
+                                  {item.laps} {item.laps === 1 ? 'lap' : 'laps'} ×{' '}
+                                  {roundsPerLap}{' '}
+                                  {roundsPerLap === 1 ? 'round' : 'rounds'}
+                                </span>
+                                <span>·</span>
+                                <span className="work-tag">
+                                  {formatHumanDuration(item.workSec)} work
+                                </span>
+                                <span>/</span>
+                                <span className="break-tag">
+                                  {formatHumanDuration(item.breakSec)} short
+                                </span>
+                                {item.longBreakSec ? (
+                                  <>
+                                    <span>/</span>
+                                    <span className="long-break-tag">
+                                      {formatHumanDuration(item.longBreakSec)} long
+                                    </span>
+                                  </>
+                                ) : null}
+                              </>
+                            ) : (
+                              <span>
+                                Simple · {formatHumanDuration(item.durationSec)}
+                              </span>
+                            )}
+                            <span>·</span>
+                            <span>Total {formatHumanDuration(totalSec)}</span>
+                          </div>
+
+                          {item.tags && item.tags.length > 0 && (
+                            <div
+                              className="preset-tags-row"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {item.tags.map((tag) => {
+                                const isActiveFilter = selectedTags.some(
+                                  (t) => t.toLowerCase() === tag.toLowerCase()
+                                );
+                                return (
+                                  <button
+                                    key={tag}
+                                    type="button"
+                                    className={`tag-chip interactive ${
+                                      isActiveFilter ? 'active' : ''
+                                    }`}
+                                    onClick={() => handleToggleTagFilter(tag)}
+                                    title={`Filter by #${tag}`}
+                                  >
+                                    #{tag}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        <div
+                          className="preset-card-actions"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <Edit3 size={14} strokeWidth={1.6} />
-                        </button>
-                        {timers.length > 1 && (
                           <button
                             type="button"
-                            className="icon-btn small danger-hover"
-                            aria-label={`Delete ${item.name}`}
-                            title="Delete timer"
-                            onClick={() => handleDeleteTimer(item.id)}
+                            className="icon-btn small"
+                            aria-label={`Edit ${item.name}`}
+                            title="Edit timer"
+                            onClick={() => {
+                              setEditingTimer(item);
+                              setIsEditorOpen(true);
+                            }}
                           >
-                            <Trash2 size={14} strokeWidth={1.6} />
+                            <Edit3 size={14} strokeWidth={1.6} />
                           </button>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                          {timers.length > 1 && (
+                            <button
+                              type="button"
+                              className="icon-btn small danger-hover"
+                              aria-label={`Delete ${item.name}`}
+                              title="Delete timer"
+                              onClick={() => handleDeleteTimer(item.id)}
+                            >
+                              <Trash2 size={14} strokeWidth={1.6} />
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </aside>
           </div>
         )}
@@ -381,6 +504,7 @@ export const App: React.FC = () => {
       {isEditorOpen && (
         <TimerEditorModal
           initialTimer={editingTimer}
+          availableTags={allTags}
           onSave={handleSaveTimer}
           onClose={() => {
             setIsEditorOpen(false);

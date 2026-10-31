@@ -287,10 +287,25 @@ export const ActiveTimerRunner: React.FC<ActiveTimerRunnerProps> = ({
       {/* Top Status Bar */}
       <div className="runner-header">
         <div className="runner-title-group">
-          <h2 className="runner-timer-name">{timer.name}</h2>
+          <div className="runner-title-row">
+            <h2 className="runner-timer-name">{timer.name}</h2>
+            {timer.tags && timer.tags.length > 0 && (
+              <div className="runner-tags-row">
+                {timer.tags.map((tag) => (
+                  <span key={tag} className="tag-chip subtle">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
           <span className="runner-subtitle">
             {timer.kind === 'workout'
-              ? `${timer.laps} rounds · ${formatHumanDuration(timer.workSec)} work / ${formatHumanDuration(timer.breakSec)} break`
+              ? `${timer.laps} ${timer.laps === 1 ? 'lap' : 'laps'} × ${timer.rounds ?? 1} ${(timer.rounds ?? 1) === 1 ? 'round' : 'rounds'} · ${formatHumanDuration(timer.workSec)} work / ${formatHumanDuration(timer.breakSec)} short${
+                  timer.longBreakSec
+                    ? ` / ${formatHumanDuration(timer.longBreakSec)} long`
+                    : ''
+                }`
               : `Simple timer · ${formatHumanDuration(timer.durationSec)}`}
           </span>
         </div>
@@ -393,12 +408,17 @@ export const ActiveTimerRunner: React.FC<ActiveTimerRunnerProps> = ({
           {!snapshot.isLastFiveSeconds && (
             <div className="runner-meta-row">
               {timer.kind === 'workout' && (
-                <span className="lap-pill">
-                  Lap {snapshot.currentPhase.lap} / {snapshot.currentPhase.totalLaps}
-                </span>
+                <>
+                  <span className="lap-pill">
+                    Lap {snapshot.currentPhase.lap}/{snapshot.currentPhase.totalLaps}
+                  </span>
+                  <span className="lap-pill">
+                    Round {snapshot.currentPhase.round}/{snapshot.currentPhase.totalRounds}
+                  </span>
+                </>
               )}
               <span className="total-remaining-text">
-                Total left {formatMMSS(snapshot.totalRemainingSec)}
+                Left {formatMMSS(snapshot.totalRemainingSec)}
               </span>
             </div>
           )}

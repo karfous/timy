@@ -2,10 +2,12 @@
   "id": "preset-emom",
   "name": "Circuit 45 / 15",
   "kind": "workout",
-  "laps": 6,
+  "laps": 3,
+  "rounds": 5,
   "workSec": 45,
   "breakSec": 15,
+  "longBreakSec": 60,
   "prepSec": 5,
+  "tags": ["circuit", "strength", "hiit"],
   "createdAt": 1700000003000
 }
-

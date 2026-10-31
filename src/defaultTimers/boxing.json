@@ -2,10 +2,12 @@
   "id": "preset-boxing",
   "name": "Boxing Rounds",
   "kind": "workout",
-  "laps": 5,
+  "laps": 2,
+  "rounds": 3,
   "workSec": 180,
   "breakSec": 60,
+  "longBreakSec": 120,
   "prepSec": 5,
+  "tags": ["boxing", "combat", "cardio"],
   "createdAt": 1700000002000
 }
-
