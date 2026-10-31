@@ -195,7 +195,7 @@ export const App: React.FC = () => {
       <header className="top-bar">
         <div className="brand-block">
           <span className="brand-dot" />
-          <h1 className="brand-title">PULSE</h1>
+          <h1 className="brand-title">TIMY</h1>
           <span className="brand-tag">WORKOUT TIMER</span>
         </div>
 

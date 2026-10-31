@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'Pulse — Minimal Workout Timer',
-        short_name: 'Pulse Timer',
+        name: 'TIMY — Minimal Workout Timer',
+        short_name: 'TIMY Timer',
         description: 'Minimalistic offline workout & interval timer with circular dial controls and custom themes.',
         theme_color: '#0b0d10',
         background_color: '#0b0d10',

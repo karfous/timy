@@ -1,4 +1,4 @@
-# Pulse — Minimalistic Workout Timer PWA
+# TIMY — Minimalistic Workout Timer PWA
 
 A clean, thin, modern, dark-mode-first **Workout & Interval Timer** built with **React + TypeScript + Vite**, designed to work completely offline as a **Progressive Web App (PWA)** and deploy seamlessly to **GitHub Pages**.
 
