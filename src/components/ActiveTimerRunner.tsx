@@ -1,18 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import {
-  Play,
-  Pause,
-  RotateCcw,
-  SkipForward,
-  Volume2,
-  VolumeX,
-  Flame,
-  Coffee,
-  Timer as TimerIcon,
-  Sparkles,
-  CheckCircle2,
-  ArrowLeft,
-} from 'lucide-react';
+import { X } from 'lucide-react';
 import { TimerDefinition, PhaseType } from '../types/timer';
 import {
   buildTimerPhases,
@@ -24,9 +11,7 @@ import { soundEngine } from '../services/audio';
 
 interface ActiveTimerRunnerProps {
   timer: TimerDefinition;
-  muted: boolean;
-  onToggleMute: () => void;
-  onBackToTimers?: () => void;
+  onCloseWorkout?: () => void;
   onWorkoutFinished: (entry: {
     timerId: string;
     timerName: string;
@@ -40,9 +25,7 @@ interface ActiveTimerRunnerProps {
 
 export const ActiveTimerRunner: React.FC<ActiveTimerRunnerProps> = ({
   timer,
-  muted,
-  onToggleMute,
-  onBackToTimers,
+  onCloseWorkout,
   onWorkoutFinished,
 }) => {
   const phases = useMemo(() => buildTimerPhases(timer), [timer]);
@@ -178,7 +161,7 @@ export const ActiveTimerRunner: React.FC<ActiveTimerRunnerProps> = ({
   const handleStartPause = useCallback(() => {
     soundEngine.unlock();
     if (snapshot.isComplete) {
-      // Restart from 0
+      // Restart from 0 when tapping digits after completion
       accumulatedSecRef.current = 0;
       lastResumeTimestampRef.current = performance.now();
       lastBeepKeyRef.current = '';
@@ -203,58 +186,11 @@ export const ActiveTimerRunner: React.FC<ActiveTimerRunnerProps> = ({
     }
   }, [isRunning, snapshot.isComplete]);
 
-  const handleReset = useCallback(() => {
-    // Log partial session if user ran at least 5 seconds of active time
-    if (elapsedSec >= 5 && !hasRecordedCompletionRef.current) {
-      const totalLaps = timer.kind === 'workout' ? timer.laps : 1;
-      const completedLaps = Math.max(0, snapshot.currentPhase.lap - 1);
-      onWorkoutFinished({
-        timerId: timer.id,
-        timerName: timer.name,
-        kind: timer.kind,
-        totalElapsedSec: Math.round(elapsedSec),
-        lapsCompleted: completedLaps,
-        totalLaps,
-        completedFully: false,
-      });
-    }
-
-    setIsRunning(false);
-    setElapsedSec(0);
-    accumulatedSecRef.current = 0;
-    lastResumeTimestampRef.current = null;
-    lastBeepKeyRef.current = '';
-    lastAnnouncedPhaseRef.current = -1;
-    hasRecordedCompletionRef.current = false;
-  }, [elapsedSec, snapshot.currentPhase.lap, timer, onWorkoutFinished]);
-
-  const handleSkipPhase = useCallback(() => {
-    const nextIndex = snapshot.currentPhaseIndex + 1;
-    if (nextIndex < phases.length) {
-      const nextStart = phases[nextIndex].startSec;
-      accumulatedSecRef.current = nextStart;
-      if (isRunning) {
-        lastResumeTimestampRef.current = performance.now();
-      }
-      lastBeepKeyRef.current = '';
-      setElapsedSec(nextStart);
-    } else {
-      // Finish timer
-      accumulatedSecRef.current = snapshot.totalDurationSec;
-      setElapsedSec(snapshot.totalDurationSec);
-    }
-  }, [snapshot.currentPhaseIndex, snapshot.totalDurationSec, phases, isRunning]);
-
-  const nextPhase =
-    snapshot.currentPhaseIndex + 1 < phases.length
-      ? phases[snapshot.currentPhaseIndex + 1]
-      : null;
-
   const getPhaseColor = (type: PhaseType, isWarn: boolean): string => {
     if (isWarn) return 'var(--accent-warn)';
     if (type === 'break') return 'var(--accent-break)';
     if (type === 'prep') return 'var(--accent-warn)';
-    return 'var(--accent-primary)';
+    return 'var(--text-primary)';
   };
 
   const activeColor = getPhaseColor(
@@ -262,244 +198,110 @@ export const ActiveTimerRunner: React.FC<ActiveTimerRunnerProps> = ({
     snapshot.isLastFiveSeconds
   );
 
-  const renderPhaseIcon = (type: PhaseType) => {
-    if (snapshot.isComplete) return <CheckCircle2 size={15} strokeWidth={1.75} />;
-    if (type === 'work') return <Flame size={15} strokeWidth={1.75} />;
-    if (type === 'break') return <Coffee size={15} strokeWidth={1.75} />;
-    if (type === 'prep') return <Sparkles size={15} strokeWidth={1.75} />;
-    return <TimerIcon size={15} strokeWidth={1.75} />;
-  };
+  const totalProgressPercent = Math.max(
+    0,
+    Math.min(100, snapshot.totalProgress * 100)
+  );
 
-  // SVG Ring Geometry
-  const size = 310;
-  const center = size / 2;
-  const outerRadius = 136;
-  const innerRadius = 122;
-  const outerCircumference = 2 * Math.PI * outerRadius;
-  const innerCircumference = 2 * Math.PI * innerRadius;
-
-  // Remaining fraction for current phase (drains smoothly from 1 to 0)
-  const remainingFraction = snapshot.isComplete
-    ? 0
-    : Math.max(0, Math.min(1, 1 - snapshot.phaseProgress));
-  const outerOffset = outerCircumference * (1 - remainingFraction);
-  const innerOffset = innerCircumference * (1 - snapshot.totalProgress);
+  const totalElapsedFormatted = formatMMSS(Math.floor(snapshot.totalElapsedSec));
+  const totalRemainingFormatted = formatMMSS(snapshot.totalRemainingSec);
 
   return (
-    <section className="runner-card" aria-label="Active Workout Timer">
-      {/* Top Status Bar */}
-      <div className="runner-header">
-        <div className="runner-title-group">
-          <div className="runner-title-row">
-            {onBackToTimers && (
-              <button
-                type="button"
-                className="icon-btn small back-timers-btn"
-                onClick={onBackToTimers}
-                aria-label="Back to Timers"
-                title="Back to Timers"
-              >
-                <ArrowLeft size={15} strokeWidth={1.7} />
-              </button>
-            )}
-            <h2 className="runner-timer-name">{timer.name}</h2>
-            {timer.tags && timer.tags.length > 0 && (
-              <div className="runner-tags-row">
-                {timer.tags.map((tag) => (
-                  <span key={tag} className="tag-chip subtle">
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          <span className="runner-subtitle">
+    <section
+      className="workout-minimal-surface"
+      aria-label="Active Workout Timer"
+    >
+      {/* Top Bar: Info (visible only when not running, no tags) + Closing X in Top-Right */}
+      <div className="workout-top-zone">
+        <div
+          className={`workout-paused-info ${
+            isRunning ? 'is-running-hidden' : ''
+          }`}
+          aria-hidden={isRunning}
+        >
+          <h2 className="workout-timer-name">{timer.name}</h2>
+          <p className="workout-timer-specs">
             {timer.kind === 'workout'
-              ? `${timer.laps} ${timer.laps === 1 ? 'lap' : 'laps'} × ${timer.rounds ?? 1} ${(timer.rounds ?? 1) === 1 ? 'round' : 'rounds'} · ${formatHumanDuration(timer.workSec)} work / ${formatHumanDuration(timer.breakSec)} short${
+              ? `${timer.laps} ${timer.laps === 1 ? 'lap' : 'laps'} × ${
+                  timer.rounds ?? 1
+                } ${(timer.rounds ?? 1) === 1 ? 'round' : 'rounds'} · ${formatHumanDuration(
+                  timer.workSec
+                )} work / ${formatHumanDuration(timer.breakSec)} short${
                   timer.longBreakSec
                     ? ` / ${formatHumanDuration(timer.longBreakSec)} long`
                     : ''
                 }`
               : `Simple timer · ${formatHumanDuration(timer.durationSec)}`}
-          </span>
+          </p>
         </div>
 
-        <button
-          type="button"
-          className="icon-btn runner-mute-btn"
-          onClick={onToggleMute}
-          aria-label={muted ? 'Unmute audio beeps' : 'Mute audio beeps'}
-          title={muted ? 'Audio muted (click to unmute)' : '5s countdown beeps enabled'}
-        >
-          {muted ? <VolumeX size={18} strokeWidth={1.5} /> : <Volume2 size={18} strokeWidth={1.5} />}
-        </button>
-      </div>
-
-      {/* Main Concentric Progress Ring */}
-      <div className="runner-ring-container">
-        <svg viewBox={`0 0 ${size} ${size}`} className="runner-svg">
-          {/* Outer Track: Current Phase */}
-          <circle
-            cx={center}
-            cy={center}
-            r={outerRadius}
-            fill="none"
-            stroke="var(--ring-track)"
-            strokeWidth="4"
-          />
-          <circle
-            cx={center}
-            cy={center}
-            r={outerRadius}
-            fill="none"
-            stroke={activeColor}
-            strokeWidth="4.5"
-            strokeLinecap="round"
-            strokeDasharray={outerCircumference}
-            strokeDashoffset={outerOffset}
-            transform={`rotate(-90 ${center} ${center})`}
-            className="runner-ring-animated"
-          />
-
-          {/* Inner Track: Total Workout Progress (shown for multi-phase timers) */}
-          {phases.length > 1 && (
-            <>
-              <circle
-                cx={center}
-                cy={center}
-                r={innerRadius}
-                fill="none"
-                stroke="var(--ring-track)"
-                strokeWidth="2"
-                opacity="0.6"
-              />
-              <circle
-                cx={center}
-                cy={center}
-                r={innerRadius}
-                fill="none"
-                stroke="var(--text-muted)"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeDasharray={innerCircumference}
-                strokeDashoffset={innerOffset}
-                transform={`rotate(-90 ${center} ${center})`}
-                opacity="0.75"
-              />
-            </>
-          )}
-        </svg>
-
-        {/* Center Readout */}
-        <div className="runner-center-content">
-          <div
-            className={`phase-badge ${snapshot.isLastFiveSeconds ? 'pulse-warn' : ''}`}
-            style={{
-              borderColor: activeColor,
-              color: activeColor,
-            }}
+        {onCloseWorkout && (
+          <button
+            type="button"
+            className="workout-close-x-btn"
+            onClick={onCloseWorkout}
+            aria-label="Close workout screen"
+            title="Close workout"
           >
-            {renderPhaseIcon(snapshot.currentPhase.type)}
-            <span>
-              {snapshot.isComplete ? 'COMPLETED' : snapshot.currentPhase.label.toUpperCase()}
-            </span>
-          </div>
-
-          <div
-            className={`main-time-display ${snapshot.isLastFiveSeconds ? 'warn-text' : ''}`}
-            aria-live="polite"
-          >
-            {formatMMSS(snapshot.phaseRemainingCeilSec)}
-          </div>
-
-          <div className="runner-status-slot">
-            {snapshot.isLastFiveSeconds ? (
-              <div className="five-sec-alert">
-                Beep · {snapshot.phaseRemainingCeilSec}s to{' '}
-                {nextPhase ? nextPhase.label : 'Finish'}
-              </div>
-            ) : (
-              <div className="runner-meta-row">
-                {timer.kind === 'workout' && (
-                  <>
-                    <span className="lap-pill">
-                      Lap {snapshot.currentPhase.lap}/{snapshot.currentPhase.totalLaps}
-                    </span>
-                    <span className="lap-pill">
-                      Round {snapshot.currentPhase.round}/{snapshot.currentPhase.totalRounds}
-                    </span>
-                  </>
-                )}
-                <span className="total-remaining-text">
-                  Left {formatMMSS(snapshot.totalRemainingSec)}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
+            <X size={22} strokeWidth={1.8} />
+          </button>
+        )}
       </div>
 
-      {/* Upcoming Phase Preview Strip */}
-      <div className="next-phase-strip">
-        <span className="next-phase-label">Up next</span>
-        <span className="next-phase-value">
-          {snapshot.isComplete
-            ? 'Session finished'
-            : nextPhase
-            ? `${nextPhase.label} (${formatMMSS(nextPhase.durationSec)})`
-            : 'Workout Complete'}
-        </span>
-      </div>
-
-      {/* Control Buttons */}
-      <div className="runner-controls">
+      {/* Middle Digits Section: Tap digits to start/pause + Right slim rising progress column & rotated total times */}
+      <div className="workout-digits-section">
         <button
           type="button"
-          className="control-btn secondary"
-          onClick={handleReset}
-          disabled={elapsedSec === 0 && !isRunning}
-          aria-label="Reset timer"
-          title="Reset timer"
-        >
-          <RotateCcw size={18} strokeWidth={1.6} />
-          <span>Reset</span>
-        </button>
-
-        <button
-          type="button"
-          className="control-btn primary"
+          className={`workout-digits-touch ${
+            snapshot.isLastFiveSeconds ? 'warn-text' : ''
+          }`}
           onClick={handleStartPause}
-          style={{
-            backgroundColor: activeColor,
-          }}
-          aria-label={isRunning ? 'Pause timer' : 'Start timer'}
+          style={{ color: activeColor }}
+          aria-live="polite"
+          aria-label={
+            isRunning
+              ? `Timer running, ${formatMMSS(
+                  snapshot.phaseRemainingCeilSec
+                )} remaining. Tap digits to pause`
+              : `Timer paused at ${formatMMSS(
+                  snapshot.phaseRemainingCeilSec
+                )}. Tap digits to start`
+          }
         >
-          {isRunning ? (
-            <>
-              <Pause size={20} strokeWidth={1.8} />
-              <span>Pause</span>
-            </>
-          ) : (
-            <>
-              <Play size={20} strokeWidth={1.8} />
-              <span>{snapshot.isComplete ? 'Restart' : elapsedSec > 0 ? 'Resume' : 'Start'}</span>
-            </>
-          )}
+          <span className="workout-digits-value">
+            {formatMMSS(snapshot.phaseRemainingCeilSec)}
+          </span>
         </button>
 
-        <button
-          type="button"
-          className="control-btn secondary"
-          onClick={handleSkipPhase}
-          disabled={snapshot.isComplete}
-          aria-label="Skip current round"
-          title="Skip to next phase"
+        {/* Right-edge total progress rail (strictly inside the digits section, never covering Rounds) */}
+        <div
+          className="workout-progress-rail"
+          aria-label="Total workout progress"
         >
-          <SkipForward size={18} strokeWidth={1.6} />
-          <span>Skip</span>
-        </button>
+          <div className="workout-rotated-times">
+            <span className="workout-total-elapsed">{totalElapsedFormatted}</span>
+            <span className="workout-total-sep">/</span>
+            <span className="workout-total-left">-{totalRemainingFormatted}</span>
+          </div>
+
+          <div className="workout-progress-column" role="progressbar" aria-valuenow={Math.round(totalProgressPercent)} aria-valuemin={0} aria-valuemax={100}>
+            <div
+              className="workout-progress-fill"
+              style={{ height: `${totalProgressPercent}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Corners: Laps (Bottom-Left) & Rounds (Bottom-Right) */}
+      <div className="workout-bottom-corners">
+        <div className="workout-corner-stat workout-corner-left" aria-label="Laps">
+          L {snapshot.currentPhase.lap}/{snapshot.currentPhase.totalLaps}
+        </div>
+        <div className="workout-corner-stat workout-corner-right" aria-label="Rounds">
+          R {snapshot.currentPhase.round}/{snapshot.currentPhase.totalRounds}
+        </div>
       </div>
     </section>
   );
 };
-

@@ -4,8 +4,6 @@ import { ActiveTimerRunner } from '../components/ActiveTimerRunner';
 
 export interface WorkoutScreenProps {
   timer: TimerDefinition;
-  muted: boolean;
-  onToggleMute: () => void;
   onBackToTimers: () => void;
   onWorkoutFinished: (entry: {
     timerId: string;
@@ -20,21 +18,14 @@ export interface WorkoutScreenProps {
 
 export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({
   timer,
-  muted,
-  onToggleMute,
   onBackToTimers,
   onWorkoutFinished,
 }) => {
   return (
-    <div className="workout-screen-layout">
-      <ActiveTimerRunner
-        timer={timer}
-        muted={muted}
-        onToggleMute={onToggleMute}
-        onBackToTimers={onBackToTimers}
-        onWorkoutFinished={onWorkoutFinished}
-      />
-    </div>
+    <ActiveTimerRunner
+      timer={timer}
+      onCloseWorkout={onBackToTimers}
+      onWorkoutFinished={onWorkoutFinished}
+    />
   );
 };
-

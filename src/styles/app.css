@@ -11,6 +11,8 @@
   --border-strong: color-mix(in oklab, var(--text-primary) 22%, var(--bg-surface));
   --ring-track: color-mix(in oklab, var(--text-primary) 9%, var(--bg-surface));
   --surface-hover: color-mix(in oklab, var(--text-primary) 5%, var(--bg-surface));
+  --workout-dimmed: color-mix(in oklab, var(--bg-primary) 58%, var(--text-primary));
+  --workout-track-dimmed: color-mix(in oklab, var(--bg-primary) 82%, var(--text-primary));
 
   color-scheme: dark;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
@@ -64,11 +66,13 @@ textarea {
 }
 
 .app-shell.app-shell-locked {
+  max-width: none;
+  width: 100%;
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  padding: 0.75rem 1rem 0.75rem;
-  gap: 0.65rem;
+  padding: 0.85rem 1.15rem;
+  gap: 0;
 }
 
 .main-content {
@@ -289,80 +293,84 @@ textarea {
   }
 }
 
-/* Workout Screen Layout (Non-Scrollable 100dvh Fit) */
-.workout-screen-layout {
+/* Workout Screen Minimal Cardless Surface (Non-Scrollable 100dvh Fit) */
+.workout-minimal-surface {
   flex: 1;
   min-height: 0;
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-/* Active Timer Runner Card */
-.runner-card {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  max-width: 560px;
-  height: 100%;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 20px;
-  padding: clamp(0.75rem, 2dvh, 1.35rem) clamp(0.9rem, 3vw, 1.5rem);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: space-between;
-  gap: clamp(0.35rem, 1.1dvh, 0.85rem);
   overflow: hidden;
+  user-select: none;
 }
 
-.runner-header {
+.workout-top-zone {
   flex-shrink: 0;
   width: 100%;
-  min-height: 42px;
+  min-height: 48px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
-.runner-title-group {
+.workout-paused-info {
   min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
+  transition: opacity 0.18s ease, visibility 0.18s ease;
 }
 
-.runner-timer-name {
-  font-size: clamp(0.96rem, 2.5vw, 1.12rem);
+.workout-paused-info.is-running-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.workout-timer-name {
+  font-size: clamp(1rem, 2.8vw, 1.2rem);
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
+  color: var(--workout-dimmed);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.runner-subtitle {
-  font-size: 0.75rem;
-  color: var(--text-muted);
+.workout-timer-specs {
+  font-size: 0.78rem;
+  color: var(--workout-dimmed);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: block;
 }
 
-.runner-mute-btn,
-.back-timers-btn {
+.workout-close-x-btn {
   flex-shrink: 0;
+  margin-left: auto;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  color: var(--workout-dimmed);
+  cursor: pointer;
+  transition: color 0.15s ease;
 }
 
-.runner-ring-container {
+.workout-close-x-btn:hover {
+  color: var(--text-primary);
+}
+
+/* Middle Section: Interactive Countdown Digits + Right Slim Rising Progress Column & Rotated Times */
+.workout-digits-section {
   position: relative;
   flex: 1;
   min-height: 0;
@@ -370,212 +378,110 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0.75rem 0;
   overflow: hidden;
 }
 
-.runner-svg {
-  width: auto;
-  height: auto;
-  max-width: min(300px, 72vw);
-  max-height: 100%;
-  aspect-ratio: 1 / 1;
-  overflow: visible;
-  display: block;
-}
-
-.runner-ring-animated {
-  transition: stroke 0.25s ease;
-}
-
-.runner-center-content {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(0.25rem, 0.8dvh, 0.45rem);
-  pointer-events: none;
-  text-align: center;
-  padding: 1rem;
-}
-
-.phase-badge {
-  height: 26px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  font-size: 0.68rem;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  padding: 0 0.68rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong);
-  background-color: color-mix(in oklab, var(--bg-primary) 75%, transparent);
-  white-space: nowrap;
-}
-
-.phase-badge.pulse-warn {
-  animation: pulseBadge 0.55s ease-in-out infinite alternate;
-}
-
-@keyframes pulseBadge {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.05);
-  }
-}
-
-.main-time-display {
-  height: 1.05em;
-  flex-shrink: 0;
+.workout-digits-touch {
+  background: transparent;
+  border: none;
+  padding: 1rem 2.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(2rem, min(6.5dvh, 11vw), 3.65rem);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.workout-digits-touch:focus-visible {
+  outline: 1px dashed var(--workout-dimmed);
+  border-radius: 16px;
+}
+
+.workout-digits-value {
+  font-size: clamp(4.2rem, min(22vw, 24dvh), 10.5rem);
   font-weight: 200;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
   line-height: 1;
   white-space: nowrap;
+  transition: color 0.2s ease;
 }
 
-.main-time-display.warn-text {
+.workout-digits-touch.warn-text {
   color: var(--accent-warn);
 }
 
-.runner-status-slot {
-  height: 26px;
-  flex-shrink: 0;
-  width: 100%;
+/* Right-Edge Total Progress Rail (Strictly inside .workout-digits-section) */
+.workout-progress-rail {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+
+.workout-rotated-times {
+  width: 1.2rem;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.five-sec-alert {
-  height: 26px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.74rem;
-  color: var(--accent-warn);
-  letter-spacing: 0.03em;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.runner-meta-row {
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  font-size: 0.74rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-.lap-pill {
-  height: 22px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 0.48rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.total-remaining-text {
-  font-variant-numeric: tabular-nums;
-}
-
-.next-phase-strip {
-  flex-shrink: 0;
-  width: 100%;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0 0.9rem;
-  border-radius: 12px;
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  font-size: 0.78rem;
-  overflow: hidden;
-}
-
-.next-phase-label {
-  color: var(--text-muted);
-  text-transform: uppercase;
+  color: var(--workout-dimmed);
+  font-size: 0.76rem;
+  font-weight: 400;
   letter-spacing: 0.08em;
-  font-size: 0.68rem;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.next-phase-value {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  transform: rotate(-90deg);
 }
 
-/* Runner Controls */
-.runner-controls {
+.workout-total-sep {
+  margin: 0 0.35rem;
+  opacity: 0.7;
+}
+
+.workout-progress-column {
+  position: relative;
+  width: 3px;
+  height: 100%;
+  background-color: var(--workout-track-dimmed);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.workout-progress-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  background-color: var(--workout-dimmed);
+  border-radius: 999px;
+  transition: height 0.12s linear;
+}
+
+/* Bottom Corners: Laps (Left) & Rounds (Right) */
+.workout-bottom-corners {
   flex-shrink: 0;
   width: 100%;
-  display: grid;
-  grid-template-columns: 1fr 1.4fr 1fr;
-  gap: 0.6rem;
-  margin-top: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-top: 0.35rem;
 }
 
-.control-btn {
-  height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  padding: 0 0.85rem;
-  border-radius: 12px;
-  font-size: 0.86rem;
+.workout-corner-stat {
+  color: var(--workout-dimmed);
+  font-size: clamp(1rem, 3.5vw, 1.3rem);
   font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: opacity 0.15s ease, background-color 0.2s ease, border-color 0.15s ease;
-}
-
-.control-btn:disabled {
-  opacity: 0.38;
-  cursor: not-allowed;
-}
-
-.control-btn.secondary {
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-}
-
-.control-btn.secondary:hover:not(:disabled) {
-  border-color: var(--border-strong);
-  background-color: var(--surface-hover);
-}
-
-.control-btn.primary {
-  border: 1px solid transparent;
-  color: #06080a;
-  font-weight: 600;
-}
-
-.control-btn.primary:hover {
-  opacity: 0.92;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 /* Timers Screen Panel & Presets List */

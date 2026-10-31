@@ -280,6 +280,53 @@ describe('Screen Routing, Mobile Hamburger Overlay & Workout Screen Lock', () =>
       container.querySelector('.app-shell')?.classList.contains('app-shell-locked')
     ).toBe(true);
 
+    // On Workout screen: no TIMY top-bar or hamburger menu, no card, no circular SVG, no control buttons, no tags
+    expect(container.querySelector('.top-bar')).toBeNull();
+    expect(container.querySelector('.runner-card')).toBeNull();
+    expect(container.querySelector('.runner-svg')).toBeNull();
+    expect(container.querySelector('.control-btn')).toBeNull();
+    expect(container.querySelector('.tag-chip')).toBeNull();
+
+    // Only closing X button in top-right corner, L x/y in bottom-left, R x/y in bottom-right, slim progress column & rotated times in digits section
+    const closeWorkoutBtn = container.querySelector(
+      '.workout-close-x-btn'
+    ) as HTMLButtonElement;
+    expect(closeWorkoutBtn).not.toBeNull();
+    expect(
+      container.querySelector('.workout-corner-left')?.textContent
+    ).toMatch(/^L \d+\/\d+$/);
+    expect(
+      container.querySelector('.workout-corner-right')?.textContent
+    ).toMatch(/^R \d+\/\d+$/);
+    expect(
+      container.querySelector('.workout-digits-section .workout-progress-column')
+    ).not.toBeNull();
+    expect(
+      container.querySelector('.workout-digits-section .workout-rotated-times')
+    ).not.toBeNull();
+
+    // Paused info (name & rounds/breaks) visible when not running, hidden when digits are tapped to start
+    const pausedInfo = container.querySelector('.workout-paused-info') as HTMLElement;
+    const digitsBtn = container.querySelector('.workout-digits-touch') as HTMLButtonElement;
+    expect(pausedInfo.classList.contains('is-running-hidden')).toBe(false);
+
+    act(() => {
+      digitsBtn.click();
+    });
+    expect(pausedInfo.classList.contains('is-running-hidden')).toBe(true);
+
+    act(() => {
+      digitsBtn.click();
+    });
+    expect(pausedInfo.classList.contains('is-running-hidden')).toBe(false);
+
+    // Clicking top-right X button closes Workout screen back to Timers screen
+    act(() => {
+      closeWorkoutBtn.click();
+    });
+    expect(window.location.hash).toBe('#/timers');
+    expect(container.querySelector('[data-screen="timers"]')).not.toBeNull();
+
     // Click Hamburger button -> opens overlay with 3 options (Timers, Stats, Palette) and switches button to X state
     const hamburgerBtn = container.querySelector('.hamburger-btn') as HTMLButtonElement;
     expect(hamburgerBtn.classList.contains('is-open')).toBe(false);

@@ -25,7 +25,6 @@ import {
   addHistoryEntry,
   clearHistory,
   loadAudioMuted,
-  saveAudioMuted,
 } from './services/storage';
 import { soundEngine } from './services/audio';
 import { TimerEditorModal } from './components/TimerEditorModal';
@@ -50,11 +49,10 @@ export const App: React.FC = () => {
   const [history, setHistory] = useState<WorkoutHistoryEntry[]>(() =>
     loadHistory()
   );
-  const [muted, setMuted] = useState<boolean>(() => {
-    const initialMuted = loadAudioMuted();
-    soundEngine.setMuted(initialMuted);
-    return initialMuted;
-  });
+
+  useEffect(() => {
+    soundEngine.setMuted(loadAudioMuted());
+  }, []);
 
   const { activeScreen, navigateToScreen } = useScreenRouter('timers');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -126,15 +124,6 @@ export const App: React.FC = () => {
     },
     [navigateToScreen]
   );
-
-  const handleToggleMute = useCallback(() => {
-    setMuted((prev) => {
-      const next = !prev;
-      soundEngine.setMuted(next);
-      saveAudioMuted(next);
-      return next;
-    });
-  }, []);
 
   const handleSaveTimer = (saved: TimerDefinition) => {
     setTimers((prev) => {
@@ -233,76 +222,76 @@ export const App: React.FC = () => {
       className={`app-shell ${isWorkoutLocked ? 'app-shell-locked' : ''}`}
       data-active-screen={activeScreen}
     >
-      {/* Minimalist Top Bar */}
-      <header className="top-bar">
-        <div
-          className="brand-block"
-          role="button"
-          tabIndex={0}
-          onClick={() => handleSelectMenuScreen('timers')}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleSelectMenuScreen('timers');
-            }
-          }}
-        >
-          <span className="brand-dot" />
-          <h1 className="brand-title">TIMY</h1>
-          <span className="brand-tag">WORKOUT TIMER</span>
-        </div>
-
-        {/* Desktop Navigation */}
-        <nav className="main-nav desktop-nav" aria-label="Main navigation">
-          <button
-            type="button"
-            className={`nav-tab ${
-              activeScreen === 'timers' || activeScreen === 'workout'
-                ? 'active'
-                : ''
-            }`}
+      {/* Minimalist Top Bar (hidden on Workout Screen) */}
+      {!isWorkoutLocked && (
+        <header className="top-bar">
+          <div
+            className="brand-block"
+            role="button"
+            tabIndex={0}
             onClick={() => handleSelectMenuScreen('timers')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSelectMenuScreen('timers');
+              }
+            }}
           >
-            <TimerIcon size={16} strokeWidth={1.6} />
-            <span>Timers</span>
-          </button>
+            <span className="brand-dot" />
+            <h1 className="brand-title">TIMY</h1>
+            <span className="brand-tag">WORKOUT TIMER</span>
+          </div>
+
+          {/* Desktop Navigation */}
+          <nav className="main-nav desktop-nav" aria-label="Main navigation">
+            <button
+              type="button"
+              className={`nav-tab ${
+                activeScreen === 'timers' ? 'active' : ''
+              }`}
+              onClick={() => handleSelectMenuScreen('timers')}
+            >
+              <TimerIcon size={16} strokeWidth={1.6} />
+              <span>Timers</span>
+            </button>
+            <button
+              type="button"
+              className={`nav-tab ${activeScreen === 'stats' ? 'active' : ''}`}
+              onClick={() => handleSelectMenuScreen('stats')}
+            >
+              <Activity size={16} strokeWidth={1.6} />
+              <span>Stats</span>
+              {history.length > 0 && (
+                <span className="nav-badge">{history.length}</span>
+              )}
+            </button>
+            <button
+              type="button"
+              className={`nav-tab ${activeScreen === 'palette' ? 'active' : ''}`}
+              onClick={() => handleSelectMenuScreen('palette')}
+            >
+              <Palette size={16} strokeWidth={1.6} />
+              <span>Palette</span>
+            </button>
+          </nav>
+
+          {/* Mobile Hamburger / Close (X) Button */}
           <button
             type="button"
-            className={`nav-tab ${activeScreen === 'stats' ? 'active' : ''}`}
-            onClick={() => handleSelectMenuScreen('stats')}
+            className={`hamburger-btn ${isMobileMenuOpen ? 'is-open' : ''}`}
+            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="mobile-overlay-menu"
+            aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
           >
-            <Activity size={16} strokeWidth={1.6} />
-            <span>Stats</span>
-            {history.length > 0 && (
-              <span className="nav-badge">{history.length}</span>
+            {isMobileMenuOpen ? (
+              <X size={20} strokeWidth={1.8} />
+            ) : (
+              <Menu size={20} strokeWidth={1.8} />
             )}
           </button>
-          <button
-            type="button"
-            className={`nav-tab ${activeScreen === 'palette' ? 'active' : ''}`}
-            onClick={() => handleSelectMenuScreen('palette')}
-          >
-            <Palette size={16} strokeWidth={1.6} />
-            <span>Palette</span>
-          </button>
-        </nav>
-
-        {/* Mobile Hamburger / Close (X) Button */}
-        <button
-          type="button"
-          className={`hamburger-btn ${isMobileMenuOpen ? 'is-open' : ''}`}
-          onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-          aria-expanded={isMobileMenuOpen}
-          aria-controls="mobile-overlay-menu"
-          aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-        >
-          {isMobileMenuOpen ? (
-            <X size={20} strokeWidth={1.8} />
-          ) : (
-            <Menu size={20} strokeWidth={1.8} />
-          )}
-        </button>
-      </header>
+        </header>
+      )}
 
       {/* Mobile Fullscreen Overlay Menu */}
       {isMobileMenuOpen && (
@@ -394,8 +383,6 @@ export const App: React.FC = () => {
           >
             <WorkoutScreen
               timer={activeTimer}
-              muted={muted}
-              onToggleMute={handleToggleMute}
               onBackToTimers={() => navigateToScreen('timers')}
               onWorkoutFinished={handleWorkoutFinished}
             />
