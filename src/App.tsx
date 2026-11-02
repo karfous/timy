@@ -27,10 +27,10 @@ import {
   loadAudioMuted,
 } from './services/storage';
 import { soundEngine } from './services/audio';
-import { ImportExportModal } from './components/ImportExportModal';
 import { Screen, ScreenRoute, useScreenRouter } from './components/Screen';
 import { TimersScreen } from './screens/TimersScreen';
 import { CreateTimerScreen } from './screens/CreateTimerScreen';
+import { ImportExportScreen } from './screens/ImportExportScreen';
 import { WorkoutScreen } from './screens/WorkoutScreen';
 import { StatsScreen } from './screens/StatsScreen';
 import { PaletteScreen } from './screens/PaletteScreen';
@@ -57,7 +57,6 @@ export const App: React.FC = () => {
   const { activeScreen, navigateToScreen } = useScreenRouter('timers');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [editingTimer, setEditingTimer] = useState<TimerDefinition | null>(null);
-  const [isImportExportOpen, setIsImportExportOpen] = useState(false);
 
   // Collect all unique tags across saved timers
   const allTags = useMemo(() => {
@@ -246,7 +245,9 @@ export const App: React.FC = () => {
             <button
               type="button"
               className={`nav-tab ${
-                activeScreen === 'timers' || activeScreen === 'create'
+                activeScreen === 'timers' ||
+                activeScreen === 'create' ||
+                activeScreen === 'import'
                   ? 'active'
                   : ''
               }`}
@@ -314,6 +315,7 @@ export const App: React.FC = () => {
               className={`mobile-menu-item ${
                 activeScreen === 'timers' ||
                 activeScreen === 'create' ||
+                activeScreen === 'import' ||
                 activeScreen === 'workout'
                   ? 'active'
                   : ''
@@ -373,7 +375,7 @@ export const App: React.FC = () => {
               navigateToScreen('create');
             }}
             onDeleteTimer={handleDeleteTimer}
-            onOpenImportExport={() => setIsImportExportOpen(true)}
+            onOpenImportExport={() => navigateToScreen('import')}
           />
         </Screen>
 
@@ -390,6 +392,18 @@ export const App: React.FC = () => {
               setEditingTimer(null);
               navigateToScreen('timers');
             }}
+          />
+        </Screen>
+
+        <Screen
+          id="import"
+          activeScreen={activeScreen}
+          ariaLabel="Import and Export Screen"
+        >
+          <ImportExportScreen
+            timers={timers}
+            onImportTimers={handleImportTimers}
+            onBackToTimers={() => navigateToScreen('timers')}
           />
         </Screen>
 
@@ -433,15 +447,6 @@ export const App: React.FC = () => {
           />
         </Screen>
       </main>
-
-      {/* Modals */}
-      {isImportExportOpen && (
-        <ImportExportModal
-          timers={timers}
-          onImportTimers={handleImportTimers}
-          onClose={() => setIsImportExportOpen(false)}
-        />
-      )}
     </div>
   );
 };

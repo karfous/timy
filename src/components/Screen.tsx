@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-export type ScreenRoute = 'timers' | 'create' | 'workout' | 'stats' | 'palette';
+export type ScreenRoute =
+  | 'timers'
+  | 'create'
+  | 'workout'
+  | 'stats'
+  | 'palette'
+  | 'import';
 
 const VALID_SCREENS: ScreenRoute[] = [
   'timers',
@@ -8,6 +14,7 @@ const VALID_SCREENS: ScreenRoute[] = [
   'workout',
   'stats',
   'palette',
+  'import',
 ];
 
 export function parseScreenFromHash(
@@ -15,6 +22,9 @@ export function parseScreenFromHash(
   fallback: ScreenRoute = 'timers'
 ): ScreenRoute {
   const cleaned = hash.replace(/^#\/?/, '').trim().toLowerCase();
+  if (cleaned === 'json' || cleaned === 'import-export' || cleaned === 'export') {
+    return 'import';
+  }
   if (VALID_SCREENS.includes(cleaned as ScreenRoute)) {
     return cleaned as ScreenRoute;
   }

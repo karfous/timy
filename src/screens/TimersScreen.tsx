@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   Plus,
   Edit3,
@@ -6,7 +6,6 @@ import {
   FileJson,
   Repeat,
   Clock,
-  Play,
 } from 'lucide-react';
 import { TimerDefinition } from '../types/timer';
 import { Card } from '../components/Card';
@@ -24,6 +23,227 @@ export interface TimersScreenProps {
   onDeleteTimer: (id: string) => void;
   onOpenImportExport: () => void;
 }
+
+const SWIPE_THRESHOLD = 70;
+
+interface SwipeableTimerTileProps {
+  timer: TimerDefinition;
+  isSelected: boolean;
+  canDelete: boolean;
+  selectedTags: string[];
+  onChooseTimer: (id: string) => void;
+  onEditTimer: (timer: TimerDefinition) => void;
+  onDeleteTimer: (id: string) => void;
+  onToggleTag: (tag: string) => void;
+}
+
+export const SwipeableTimerTile: React.FC<SwipeableTimerTileProps> = ({
+  timer,
+  isSelected,
+  canDelete,
+  selectedTags,
+  onChooseTimer,
+  onEditTimer,
+  onDeleteTimer,
+  onToggleTag,
+}) => {
+  const [offsetX, setOffsetX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const isHorizontalGesture = useRef<boolean | null>(null);
+  const suppressClick = useRef(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length > 1) return;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isHorizontalGesture.current = null;
+    suppressClick.current = false;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isHorizontalGesture.current === false) return; // Vertical scroll, ignore
+
+    const deltaX = e.touches[0].clientX - touchStartX.current;
+    const deltaY = e.touches[0].clientY - touchStartY.current;
+
+    // Determine direction on first significant movement
+    if (isHorizontalGesture.current === null) {
+      if (Math.abs(deltaY) > 8 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        isHorizontalGesture.current = false;
+        setIsDragging(false);
+        setOffsetX(0);
+        return;
+      }
+      if (Math.abs(deltaX) > 8 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        isHorizontalGesture.current = true;
+        suppressClick.current = true;
+      }
+    }
+
+    if (isHorizontalGesture.current === true) {
+      if (deltaX > 0) {
+        // Swiping right: Edit
+        setOffsetX(Math.min(deltaX, 130));
+      } else {
+        // Swiping left: Delete
+        if (!canDelete) {
+          // Damped resistance if delete is disabled (e.g. only 1 timer remaining)
+          setOffsetX(Math.max(deltaX * 0.15, -25));
+        } else {
+          setOffsetX(Math.max(deltaX, -130));
+        }
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (isHorizontalGesture.current === true) {
+      if (offsetX >= SWIPE_THRESHOLD) {
+        onEditTimer(timer);
+      } else if (offsetX <= -SWIPE_THRESHOLD && canDelete) {
+        onDeleteTimer(timer.id);
+      }
+      setTimeout(() => {
+        suppressClick.current = false;
+      }, 150);
+    }
+    setOffsetX(0);
+    isHorizontalGesture.current = null;
+  };
+
+  const handleTouchCancel = () => {
+    setIsDragging(false);
+    setOffsetX(0);
+    isHorizontalGesture.current = null;
+    suppressClick.current = false;
+  };
+
+  const handleClick = () => {
+    if (suppressClick.current) {
+      return;
+    }
+    onChooseTimer(timer.id);
+  };
+
+  return (
+    <li className="preset-card-swipe-container">
+      <div
+        className={`preset-swipe-backdrop ${
+          offsetX > 0
+            ? 'swipe-active-edit'
+            : offsetX < 0
+            ? 'swipe-active-delete'
+            : ''
+        }`}
+        aria-hidden="true"
+      >
+        <div
+          className={`swipe-action-hint swipe-hint-left ${
+            offsetX >= SWIPE_THRESHOLD ? 'hint-ready' : ''
+          }`}
+        >
+          <Edit3 size={18} strokeWidth={2} />
+          <span>Edit</span>
+        </div>
+        <div
+          className={`swipe-action-hint swipe-hint-right ${
+            offsetX <= -SWIPE_THRESHOLD && canDelete ? 'hint-ready' : ''
+          }`}
+        >
+          <span>{canDelete ? 'Delete' : 'Cannot delete'}</span>
+          <Trash2 size={18} strokeWidth={2} />
+        </div>
+      </div>
+
+      <Card
+        as="div"
+        variant="item"
+        interactive
+        selected={isSelected}
+        className="preset-card"
+        style={{
+          transform: offsetX !== 0 ? `translateX(${offsetX}px)` : undefined,
+          transition: isDragging
+            ? 'none'
+            : 'transform 0.22s cubic-bezier(0.2, 0.9, 0.4, 1.1)',
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
+        onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onChooseTimer(timer.id);
+          }
+        }}
+      >
+        <div className="preset-card-main">
+          <Heading
+            level={3}
+            size="sm"
+            icon={
+              <span className="preset-kind-icon">
+                {timer.kind === 'workout' ? (
+                  <Repeat size={14} strokeWidth={1.7} />
+                ) : (
+                  <Clock size={14} strokeWidth={1.7} />
+                )}
+              </span>
+            }
+            title={timer.name}
+            className="preset-title-row"
+            titleClassName="preset-name"
+          />
+
+          <div className="preset-details">
+            <TimerInfo timer={timer} />
+          </div>
+
+          <TagList
+            tags={timer.tags}
+            selectedTags={selectedTags}
+            onToggleTag={onToggleTag}
+          />
+        </div>
+
+        <div
+          className="preset-card-actions"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label={`Edit ${timer.name}`}
+            title="Edit timer"
+            onClick={() => onEditTimer(timer)}
+          >
+            <Edit3 size={15} strokeWidth={1.7} />
+          </button>
+          {canDelete && (
+            <button
+              type="button"
+              className="icon-btn danger-hover"
+              aria-label={`Delete ${timer.name}`}
+              title="Delete timer"
+              onClick={() => onDeleteTimer(timer.id)}
+            >
+              <Trash2 size={15} strokeWidth={1.7} />
+            </button>
+          )}
+        </div>
+      </Card>
+    </li>
+  );
+};
 
 export const TimersScreen: React.FC<TimersScreenProps> = ({
   timers,
@@ -108,92 +328,19 @@ export const TimersScreen: React.FC<TimersScreenProps> = ({
         </div>
       ) : (
         <ul className="presets-list timers-grid-list">
-          {filteredTimers.map((item) => {
-            const isSelected = item.id === activeTimerId;
-            return (
-              <Card
-                as="li"
-                key={item.id}
-                variant="item"
-                interactive
-                selected={isSelected}
-                className="preset-card"
-                onClick={() => onChooseTimer(item.id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onChooseTimer(item.id);
-                  }
-                }}
-              >
-                <div className="preset-card-main">
-                  <Heading
-                    level={3}
-                    size="sm"
-                    icon={
-                      <span className="preset-kind-icon">
-                        {item.kind === 'workout' ? (
-                          <Repeat size={14} strokeWidth={1.7} />
-                        ) : (
-                          <Clock size={14} strokeWidth={1.7} />
-                        )}
-                      </span>
-                    }
-                    title={item.name}
-                    className="preset-title-row"
-                    titleClassName="preset-name"
-                  />
-
-                  <div className="preset-details">
-                    <TimerInfo timer={item} />
-                  </div>
-
-                  <TagList
-                    tags={item.tags}
-                    selectedTags={selectedTags}
-                    onToggleTag={handleToggleTagFilter}
-                  />
-                </div>
-
-                <div
-                  className="preset-card-actions"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    type="button"
-                    className="icon-btn small"
-                    aria-label={`Start ${item.name}`}
-                    title="Open workout screen"
-                    onClick={() => onChooseTimer(item.id)}
-                  >
-                    <Play size={13} strokeWidth={1.8} />
-                  </button>
-                  <button
-                    type="button"
-                    className="icon-btn small"
-                    aria-label={`Edit ${item.name}`}
-                    title="Edit timer"
-                    onClick={() => onEditTimer(item)}
-                  >
-                    <Edit3 size={14} strokeWidth={1.6} />
-                  </button>
-                  {timers.length > 1 && (
-                    <button
-                      type="button"
-                      className="icon-btn small danger-hover"
-                      aria-label={`Delete ${item.name}`}
-                      title="Delete timer"
-                      onClick={() => onDeleteTimer(item.id)}
-                    >
-                      <Trash2 size={14} strokeWidth={1.6} />
-                    </button>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
+          {filteredTimers.map((item) => (
+            <SwipeableTimerTile
+              key={item.id}
+              timer={item}
+              isSelected={item.id === activeTimerId}
+              canDelete={timers.length > 1}
+              selectedTags={selectedTags}
+              onChooseTimer={onChooseTimer}
+              onEditTimer={onEditTimer}
+              onDeleteTimer={onDeleteTimer}
+              onToggleTag={handleToggleTagFilter}
+            />
+          ))}
         </ul>
       )}
     </Card>

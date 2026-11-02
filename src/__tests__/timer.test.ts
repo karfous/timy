@@ -251,8 +251,63 @@ describe('Screen Routing, Mobile Hamburger Overlay & Workout Screen Lock', () =>
     expect(parseScreenFromHash('#/workout')).toBe('workout');
     expect(parseScreenFromHash('#/stats')).toBe('stats');
     expect(parseScreenFromHash('#/palette')).toBe('palette');
+    expect(parseScreenFromHash('#/import')).toBe('import');
+    expect(parseScreenFromHash('#/json')).toBe('import');
+    expect(parseScreenFromHash('#/import-export')).toBe('import');
     expect(parseScreenFromHash('#/unknown')).toBe('timers');
     expect(parseScreenFromHash('')).toBe('timers');
+  });
+
+  it('navigates to Import JSON screen (#/import) instead of a modal and returns to Timers screen on back', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = ReactDOM.createRoot(container);
+
+    act(() => {
+      root.render(React.createElement(App));
+    });
+
+    expect(container.querySelector('[data-screen="timers"]')).not.toBeNull();
+    expect(container.querySelector('[data-screen="import"]')).toBeNull();
+
+    // Click "JSON" button on Timers screen -> navigates to #/import screen
+    const jsonBtn = Array.from(container.querySelectorAll('button')).find(
+      (btn) => btn.textContent?.includes('JSON')
+    ) as HTMLButtonElement;
+    expect(jsonBtn).not.toBeNull();
+
+    act(() => {
+      jsonBtn.click();
+    });
+
+    expect(window.location.hash).toBe('#/import');
+    expect(container.querySelector('[data-screen="import"]')).not.toBeNull();
+    expect(container.querySelector('[data-screen="timers"]')).toBeNull();
+    expect(container.querySelector('.modal-backdrop')).toBeNull();
+
+    // Content starts below the main header (.top-bar is rendered above .main-content)
+    const topBar = container.querySelector('.top-bar');
+    const mainContent = container.querySelector('.main-content');
+    expect(topBar).not.toBeNull();
+    expect(mainContent).not.toBeNull();
+    expect(topBar?.nextElementSibling).toBe(mainContent);
+
+    // Clicking Back / X button returns to #/timers screen
+    const backBtn = container.querySelector('button[aria-label="Back to timers"]') as HTMLButtonElement;
+    expect(backBtn).not.toBeNull();
+
+    act(() => {
+      backBtn.click();
+    });
+
+    expect(window.location.hash).toBe('#/timers');
+    expect(container.querySelector('[data-screen="timers"]')).not.toBeNull();
+    expect(container.querySelector('[data-screen="import"]')).toBeNull();
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
   });
 
   it('navigates to Create Timer screen (#/create) instead of a modal and returns to Timers screen on save or cancel', () => {

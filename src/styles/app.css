@@ -537,6 +537,8 @@ textarea {
 }
 
 .preset-card {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -546,6 +548,8 @@ textarea {
   background-color: var(--bg-primary);
   border: 1px solid var(--border-subtle);
   cursor: pointer;
+  touch-action: pan-y;
+  will-change: transform;
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
@@ -764,11 +768,71 @@ textarea {
   border-color: var(--accent-primary);
 }
 
-.preset-card-actions {
+.preset-card-swipe-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  background-color: var(--bg-surface);
+  list-style: none;
+}
+
+.preset-swipe-backdrop {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  justify-content: space-between;
+  padding: 0 1.15rem;
+  z-index: 0;
+  border-radius: 14px;
+  transition: background-color 0.15s ease;
+}
+
+.preset-swipe-backdrop.swipe-active-edit {
+  background-color: color-mix(in oklab, var(--accent-primary) 18%, var(--bg-surface));
+}
+
+.preset-swipe-backdrop.swipe-active-delete {
+  background-color: color-mix(in oklab, #ef4444 20%, var(--bg-surface));
+}
+
+.swipe-action-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.35;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  user-select: none;
+}
+
+.swipe-action-hint.hint-ready {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.swipe-hint-left {
+  color: var(--accent-primary);
+}
+
+.swipe-hint-right {
+  color: #f87171;
+  margin-left: auto;
+}
+
+.preset-card-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
   flex-shrink: 0;
+}
+
+.preset-card-actions .icon-btn {
+  width: 32px;
+  height: 32px;
 }
 
 /* Concentric Circular Time Input */
@@ -1009,7 +1073,7 @@ textarea {
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  z-index: 50;
+  z-index: 80;
 }
 
 .modal-panel {
@@ -1517,7 +1581,11 @@ textarea {
   min-width: 200px;
 }
 
-/* Import / Export Modal */
+/* Import / Export Screen */
+.import-screen-panel .segmented-control {
+  max-width: 420px;
+}
+
 .io-body {
   display: flex;
   flex-direction: column;
@@ -1804,6 +1872,32 @@ textarea {
     border-bottom-color: var(--accent-primary) !important;
   }
 
+  /* Mobile timer tile swipe actions & button hiding */
+  .preset-card-actions {
+    display: none !important;
+  }
+
+  .preset-card-swipe-container {
+    width: 100% !important;
+    border-radius: 0 !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+    background-color: var(--bg-primary) !important;
+  }
+
+  .preset-swipe-backdrop {
+    border-radius: 0 !important;
+  }
+
+  .preset-card-swipe-container .preset-card {
+    background-color: var(--bg-primary) !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  .preset-card-swipe-container .preset-card.selected {
+    background-color: color-mix(in oklab, var(--accent-primary) 8%, var(--bg-primary)) !important;
+  }
+
   .history-list-container,
   .custom-palette-form {
     width: 100%;
@@ -1829,6 +1923,15 @@ textarea {
     border-left: none;
     border-right: none;
     width: 100%;
+  }
+
+  .import-screen-panel .segmented-control {
+    max-width: 100%;
+    margin: 0.75rem;
+  }
+
+  .import-screen-panel .io-body {
+    padding: 0 0.75rem 1rem;
   }
 
   /* Full-width modals on mobile without outer screen padding */
