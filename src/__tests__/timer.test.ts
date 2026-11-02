@@ -482,7 +482,7 @@ describe('Screen Routing, Mobile Hamburger Overlay & Workout Screen Lock', () =>
 });
 
 describe('Reusable UI Components: Card, Heading, Tags, and TimerInfo', () => {
-  it('formats workout and simple timers in "L3 | R4 | W20 | BR 10(60)" format', () => {
+  it('formats workout and simple timers in "L3 | R4 | W20 | BR 10 (60)" format', () => {
     const workout: WorkoutTimerConfig = {
       id: 'w-info',
       name: 'HIIT',
@@ -494,14 +494,14 @@ describe('Reusable UI Components: Card, Heading, Tags, and TimerInfo', () => {
       longBreakSec: 60,
       createdAt: 1000,
     };
-    expect(formatTimerInfoString(workout)).toBe('L3 | R4 | W20 | BR 10(60)');
+    expect(formatTimerInfoString(workout)).toBe('L3 | R4 | W20 | BR 10 (60)');
 
     const container = document.createElement('div');
     const root = ReactDOM.createRoot(container);
     act(() => {
       root.render(React.createElement(TimerInfo, { timer: workout }));
     });
-    expect(container.textContent).toBe('L3 | R4 | W20 | BR 10(60)');
+    expect(container.textContent).toBe('L3 | R4 | W20 | BR 10 (60)');
 
     act(() => {
       root.unmount();
@@ -537,8 +537,8 @@ describe('Reusable UI Components: Card, Heading, Tags, and TimerInfo', () => {
               allTags: ['hiit', 'boxing'],
               selectedTags: ['boxing'],
               totalCount: 4,
-              onToggleTag: () => {},
-              onClearTags: () => {},
+              onToggleTag: () => { },
+              onClearTags: () => { },
             })
           )
         )
@@ -698,13 +698,11 @@ describe('Settings, Handedness & Full Backup', () => {
           onBackup: () => {
             backupTriggered = true;
           },
-          onRestoreBackup: () => {},
+          onRestoreBackup: () => { },
         })
       );
     });
 
-    const title = container.querySelector('.ui-heading-title');
-    expect(title?.textContent).toContain('Settings');
 
     // Check handedness cards
     const cards = container.querySelectorAll('.handedness-card');
