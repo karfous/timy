@@ -45,6 +45,7 @@ body {
   line-height: 1.5;
   transition: background-color 0.2s ease, color 0.2s ease;
   accent-color: var(--accent-primary);
+  padding: 5px 10px;
 }
 
 button,
@@ -517,20 +518,15 @@ textarea {
 .sidebar-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.sidebar-title {
-  font-size: 0.92rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
+  width: 100%;
 }
 
 .sidebar-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
+  width: 100%;
 }
 
 .presets-list {
@@ -1191,6 +1187,7 @@ textarea {
   .dials-grid.triple-dial {
     grid-template-columns: 1fr;
   }
+
   .laps-rounds-grid {
     grid-template-columns: 1fr;
   }
@@ -1200,6 +1197,7 @@ textarea {
   .dials-grid.dual-dial {
     grid-template-columns: 1fr;
   }
+
   .form-row-grid {
     grid-template-columns: 1fr;
   }
@@ -1594,6 +1592,7 @@ textarea {
 }
 
 @media (forced-colors: active) {
+
   .runner-card,
   .presets-sidebar,
   .preset-card,
@@ -1814,8 +1813,8 @@ textarea {
     border-top: none;
   }
 
-  .history-list-container > .ui-heading,
-  .custom-palette-form > .ui-heading {
+  .history-list-container>.ui-heading,
+  .custom-palette-form>.ui-heading {
     padding: 0.65rem 0.75rem 0.4rem;
     border-bottom: 1px solid var(--border-subtle);
   }
@@ -1849,5 +1848,3 @@ textarea {
     padding: 0.85rem 0.75rem;
   }
 }
-
-

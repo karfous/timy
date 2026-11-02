@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-export type ScreenRoute = 'timers' | 'workout' | 'stats' | 'palette';
+export type ScreenRoute = 'timers' | 'create' | 'workout' | 'stats' | 'palette';
 
-const VALID_SCREENS: ScreenRoute[] = ['timers', 'workout', 'stats', 'palette'];
+const VALID_SCREENS: ScreenRoute[] = [
+  'timers',
+  'create',
+  'workout',
+  'stats',
+  'palette',
+];
 
 export function parseScreenFromHash(
   hash: string,

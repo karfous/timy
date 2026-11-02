@@ -27,10 +27,10 @@ import {
   loadAudioMuted,
 } from './services/storage';
 import { soundEngine } from './services/audio';
-import { TimerEditorModal } from './components/TimerEditorModal';
 import { ImportExportModal } from './components/ImportExportModal';
 import { Screen, ScreenRoute, useScreenRouter } from './components/Screen';
 import { TimersScreen } from './screens/TimersScreen';
+import { CreateTimerScreen } from './screens/CreateTimerScreen';
 import { WorkoutScreen } from './screens/WorkoutScreen';
 import { StatsScreen } from './screens/StatsScreen';
 import { PaletteScreen } from './screens/PaletteScreen';
@@ -57,7 +57,6 @@ export const App: React.FC = () => {
   const { activeScreen, navigateToScreen } = useScreenRouter('timers');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [editingTimer, setEditingTimer] = useState<TimerDefinition | null>(null);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
 
   // Collect all unique tags across saved timers
@@ -134,8 +133,8 @@ export const App: React.FC = () => {
       return [saved, ...prev];
     });
     setActiveTimerId(saved.id);
-    setIsEditorOpen(false);
     setEditingTimer(null);
+    navigateToScreen('timers');
   };
 
   const handleDeleteTimer = (id: string) => {
@@ -247,7 +246,9 @@ export const App: React.FC = () => {
             <button
               type="button"
               className={`nav-tab ${
-                activeScreen === 'timers' ? 'active' : ''
+                activeScreen === 'timers' || activeScreen === 'create'
+                  ? 'active'
+                  : ''
               }`}
               onClick={() => handleSelectMenuScreen('timers')}
             >
@@ -311,7 +312,9 @@ export const App: React.FC = () => {
             <button
               type="button"
               className={`mobile-menu-item ${
-                activeScreen === 'timers' || activeScreen === 'workout'
+                activeScreen === 'timers' ||
+                activeScreen === 'create' ||
+                activeScreen === 'workout'
                   ? 'active'
                   : ''
               }`}
@@ -363,14 +366,30 @@ export const App: React.FC = () => {
             onChooseTimer={handleChooseTimer}
             onCreateNewTimer={() => {
               setEditingTimer(null);
-              setIsEditorOpen(true);
+              navigateToScreen('create');
             }}
             onEditTimer={(timer) => {
               setEditingTimer(timer);
-              setIsEditorOpen(true);
+              navigateToScreen('create');
             }}
             onDeleteTimer={handleDeleteTimer}
             onOpenImportExport={() => setIsImportExportOpen(true)}
+          />
+        </Screen>
+
+        <Screen
+          id="create"
+          activeScreen={activeScreen}
+          ariaLabel="Create Timer Screen"
+        >
+          <CreateTimerScreen
+            initialTimer={editingTimer}
+            availableTags={allTags}
+            onSave={handleSaveTimer}
+            onCancel={() => {
+              setEditingTimer(null);
+              navigateToScreen('timers');
+            }}
           />
         </Screen>
 
@@ -416,18 +435,6 @@ export const App: React.FC = () => {
       </main>
 
       {/* Modals */}
-      {isEditorOpen && (
-        <TimerEditorModal
-          initialTimer={editingTimer}
-          availableTags={allTags}
-          onSave={handleSaveTimer}
-          onClose={() => {
-            setIsEditorOpen(false);
-            setEditingTimer(null);
-          }}
-        />
-      )}
-
       {isImportExportOpen && (
         <ImportExportModal
           timers={timers}

@@ -247,11 +247,59 @@ describe('Screen Routing, Mobile Hamburger Overlay & Workout Screen Lock', () =>
 
   it('parses valid screen routes from hash and falls back to timers', () => {
     expect(parseScreenFromHash('#/timers')).toBe('timers');
+    expect(parseScreenFromHash('#/create')).toBe('create');
     expect(parseScreenFromHash('#/workout')).toBe('workout');
     expect(parseScreenFromHash('#/stats')).toBe('stats');
     expect(parseScreenFromHash('#/palette')).toBe('palette');
     expect(parseScreenFromHash('#/unknown')).toBe('timers');
     expect(parseScreenFromHash('')).toBe('timers');
+  });
+
+  it('navigates to Create Timer screen (#/create) instead of a modal and returns to Timers screen on save or cancel', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = ReactDOM.createRoot(container);
+
+    act(() => {
+      root.render(React.createElement(App));
+    });
+
+    expect(container.querySelector('[data-screen="timers"]')).not.toBeNull();
+    expect(container.querySelector('[data-screen="create"]')).toBeNull();
+
+    // Click "New Timer" button on Timers screen -> navigates to #/create screen
+    const newTimerBtn = Array.from(container.querySelectorAll('button')).find(
+      (btn) => btn.textContent?.includes('New Timer')
+    ) as HTMLButtonElement;
+    expect(newTimerBtn).not.toBeNull();
+
+    act(() => {
+      newTimerBtn.click();
+    });
+
+    expect(window.location.hash).toBe('#/create');
+    expect(container.querySelector('[data-screen="create"]')).not.toBeNull();
+    expect(container.querySelector('[data-screen="timers"]')).toBeNull();
+    expect(container.querySelector('.modal-backdrop')).toBeNull();
+
+    // Clicking Cancel returns to #/timers screen
+    const cancelBtn = Array.from(container.querySelectorAll('button')).find(
+      (btn) => btn.textContent?.trim() === 'Cancel'
+    ) as HTMLButtonElement;
+    expect(cancelBtn).not.toBeNull();
+
+    act(() => {
+      cancelBtn.click();
+    });
+
+    expect(window.location.hash).toBe('#/timers');
+    expect(container.querySelector('[data-screen="timers"]')).not.toBeNull();
+    expect(container.querySelector('[data-screen="create"]')).toBeNull();
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
   });
 
   it('shows only timers on Timers screen, switches to non-scrollable Workout screen on timer selection, and toggles Hamburger/X overlay menu', () => {

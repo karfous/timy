@@ -64,35 +64,27 @@ export const TimersScreen: React.FC<TimersScreenProps> = ({
       className="timers-screen-panel"
       aria-label="Saved Timers"
     >
-      <Heading
-        level={2}
-        size="md"
-        title="Saved Timers"
-        subtitle="Choose a timer to launch the workout screen"
-        className="sidebar-header"
-        titleClassName="sidebar-title"
-        actions={
-          <div className="sidebar-actions">
-            <button
-              type="button"
-              className="btn-ghost small"
-              onClick={onOpenImportExport}
-              title="Export or Import JSON"
-            >
-              <FileJson size={15} strokeWidth={1.6} />
-              <span>JSON</span>
-            </button>
-            <button
-              type="button"
-              className="btn-solid small"
-              onClick={onCreateNewTimer}
-            >
-              <Plus size={15} strokeWidth={1.8} />
-              <span>New Timer</span>
-            </button>
-          </div>
-        }
-      />
+      <div className="sidebar-header">
+        <div className="sidebar-actions">
+          <button
+            type="button"
+            className="btn-ghost small"
+            onClick={onOpenImportExport}
+            title="Export or Import JSON"
+          >
+            <FileJson size={15} strokeWidth={1.6} />
+            <span>JSON</span>
+          </button>
+          <button
+            type="button"
+            className="btn-solid small"
+            onClick={onCreateNewTimer}
+          >
+            <Plus size={15} strokeWidth={1.8} />
+            <span>New Timer</span>
+          </button>
+        </div>
+      </div>
 
       <TagFilterBar
         allTags={allTags}
