@@ -227,7 +227,7 @@ export const PaletteEditor: React.FC<PaletteEditorProps> = ({
             onChange={(e) => setCustomName(e.target.value)}
             aria-label="Custom palette name"
           />
-          <button type="submit" className="btn-solid">
+          <button type="submit" className="btn-solid save-palette-btn">
             {savedNotice ? (
               <>
                 <Check size={16} strokeWidth={1.8} />

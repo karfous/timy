@@ -1,4 +1,6 @@
 import {
+  AppBackupPayload,
+  AppSettings,
   ColorPalette,
   TimerDefinition,
   WorkoutHistoryEntry,
@@ -13,6 +15,7 @@ const KEYS = {
   ACTIVE_PALETTE: 'pulse_active_palette_v1',
   HISTORY: 'pulse_workout_history_v1',
   MUTED: 'pulse_audio_muted_v1',
+  SETTINGS: 'pulse_app_settings_v1',
 } as const;
 
 export const DEFAULT_PALETTES: ColorPalette[] = [
@@ -456,6 +459,57 @@ export function saveAudioMuted(muted: boolean): void {
   safeSetItem(KEYS.MUTED, muted ? 'true' : 'false');
 }
 
+export const DEFAULT_SETTINGS: AppSettings = {
+  handedness: 'right',
+  soundMuted: false,
+};
+
+export function loadAppSettings(): AppSettings {
+  const raw = safeGetItem(KEYS.SETTINGS);
+  const mutedFallback = loadAudioMuted();
+
+  if (!raw) {
+    return {
+      ...DEFAULT_SETTINGS,
+      soundMuted: mutedFallback,
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') {
+      return { ...DEFAULT_SETTINGS, soundMuted: mutedFallback };
+    }
+    const handedness =
+      parsed.handedness === 'left' || parsed.handedness === 'right'
+        ? parsed.handedness
+        : 'right';
+    const soundMuted =
+      typeof parsed.soundMuted === 'boolean'
+        ? parsed.soundMuted
+        : mutedFallback;
+
+    return {
+      handedness,
+      soundMuted,
+    };
+  } catch {
+    return {
+      ...DEFAULT_SETTINGS,
+      soundMuted: mutedFallback,
+    };
+  }
+}
+
+export function saveAppSettings(settings: AppSettings): void {
+  const cleanSettings: AppSettings = {
+    handedness: settings.handedness === 'left' ? 'left' : 'right',
+    soundMuted: Boolean(settings.soundMuted),
+  };
+  safeSetItem(KEYS.SETTINGS, JSON.stringify(cleanSettings));
+  saveAudioMuted(cleanSettings.soundMuted);
+}
+
 export function isValidTimerDefinition(item: unknown): item is TimerDefinition {
   if (!item || typeof item !== 'object') return false;
   const obj = item as Record<string, unknown>;
@@ -540,4 +594,131 @@ export function parseImportedTimersJson(jsonText: string): TimerDefinition[] {
 
   return sanitized;
 }
+
+export function generateFullBackupPayload(
+  overrides?: Partial<AppBackupPayload>
+): AppBackupPayload {
+  return {
+    version: 1,
+    backupAt: new Date().toISOString(),
+    timers: overrides?.timers ?? loadTimers(),
+    customPalettes: overrides?.customPalettes ?? loadCustomPalettes(),
+    activePalette: overrides?.activePalette ?? loadActivePalette(),
+    history: overrides?.history ?? loadHistory(),
+    settings: overrides?.settings ?? loadAppSettings(),
+  };
+}
+
+export function downloadFullBackupFile(
+  backupPayload?: AppBackupPayload
+): void {
+  const payload = backupPayload ?? generateFullBackupPayload();
+  const jsonText = JSON.stringify(payload, null, 2);
+  const blob = new Blob([jsonText], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const dateStr = new Date().toISOString().slice(0, 10);
+  a.download = `timy-backup-${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export function parseFullBackupJson(jsonText: string): AppBackupPayload {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch {
+    throw new Error('Invalid JSON format. Please select a valid backup JSON file.');
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Invalid backup file: root must be a JSON object.');
+  }
+
+  const root = parsed as Record<string, unknown>;
+
+  // 1. Timers
+  let timers: TimerDefinition[] = [];
+  if (Array.isArray(root.timers)) {
+    for (const item of root.timers) {
+      const fallbackId = `timer-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const entry = sanitizeTimerEntry(item, fallbackId, Date.now());
+      if (entry) timers.push(entry);
+    }
+  }
+  if (timers.length === 0) {
+    timers = loadTimers();
+  }
+
+  // 2. Custom Palettes
+  let customPalettes: ColorPalette[] = [];
+  if (Array.isArray(root.customPalettes)) {
+    customPalettes = root.customPalettes.filter(isValidPalette);
+  }
+
+  // 3. Active Palette
+  let activePalette: ColorPalette | undefined;
+  if (root.activePalette && isValidPalette(root.activePalette)) {
+    activePalette = root.activePalette;
+  }
+
+  // 4. History
+  let history: WorkoutHistoryEntry[] = [];
+  if (Array.isArray(root.history)) {
+    history = root.history.filter((h): h is WorkoutHistoryEntry => {
+      if (!h || typeof h !== 'object') return false;
+      const rec = h as Record<string, unknown>;
+      return (
+        typeof rec.id === 'string' &&
+        typeof rec.timerName === 'string' &&
+        typeof rec.completedAt === 'number'
+      );
+    });
+  }
+
+  // 5. Settings
+  let settings: AppSettings = DEFAULT_SETTINGS;
+  if (root.settings && typeof root.settings === 'object') {
+    const s = root.settings as Record<string, unknown>;
+    settings = {
+      handedness: s.handedness === 'left' ? 'left' : 'right',
+      soundMuted: Boolean(s.soundMuted),
+    };
+  }
+
+  return {
+    version: typeof root.version === 'number' ? root.version : 1,
+    backupAt: typeof root.backupAt === 'string' ? root.backupAt : new Date().toISOString(),
+    timers,
+    customPalettes,
+    activePalette,
+    history,
+    settings,
+  };
+}
+
+export function restoreFullBackup(backup: AppBackupPayload): void {
+  if (backup.timers && backup.timers.length > 0) {
+    saveTimers(backup.timers);
+    if (backup.timers[0]) {
+      saveActiveTimerId(backup.timers[0].id);
+    }
+  }
+  if (backup.customPalettes) {
+    saveCustomPalettes(backup.customPalettes);
+  }
+  if (backup.activePalette) {
+    saveActivePalette(backup.activePalette);
+  }
+  if (backup.history) {
+    saveHistory(backup.history);
+  }
+  if (backup.settings) {
+    saveAppSettings(backup.settings);
+  }
+}
+
 

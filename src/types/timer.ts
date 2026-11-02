@@ -91,3 +91,21 @@ export interface ColorPalette {
   accentWarn: string;
 }
 
+export type Handedness = 'right' | 'left';
+
+export interface AppSettings {
+  handedness: Handedness;
+  soundMuted: boolean;
+}
+
+export interface AppBackupPayload {
+  version: number;
+  backupAt: string;
+  timers: TimerDefinition[];
+  customPalettes: ColorPalette[];
+  activePalette?: ColorPalette;
+  history: WorkoutHistoryEntry[];
+  settings: AppSettings;
+}
+
+

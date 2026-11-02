@@ -18,13 +18,20 @@ import {
   computeWorkoutStats,
   serializeTimersForExport,
   parseImportedTimersJson,
+  DEFAULT_SETTINGS,
+  loadAppSettings,
+  saveAppSettings,
+  generateFullBackupPayload,
+  parseFullBackupJson,
+  restoreFullBackup,
 } from '../services/storage';
-import { WorkoutTimerConfig, SimpleTimerConfig } from '../types/timer';
+import { WorkoutTimerConfig, SimpleTimerConfig, AppBackupPayload, AppSettings } from '../types/timer';
 import { parseScreenFromHash } from '../components/Screen';
 import { Card } from '../components/Card';
 import { Heading } from '../components/Heading';
 import { TagChip, TagList, TagFilterBar } from '../components/Tags';
 import { TimerInfo, formatTimerInfoString } from '../components/TimerInfo';
+import { SettingsScreen } from '../screens/SettingsScreen';
 import { App } from '../App';
 
 describe('Timer Phase & 5-Second Countdown Engine', () => {
@@ -448,10 +455,11 @@ describe('Screen Routing, Mobile Hamburger Overlay & Workout Screen Lock', () =>
     const overlayItems = Array.from(
       container.querySelectorAll('.mobile-menu-item')
     ).map((el) => el.textContent?.trim());
-    expect(overlayItems).toHaveLength(3);
+    expect(overlayItems).toHaveLength(4);
     expect(overlayItems[0]).toBe('Timers');
     expect(overlayItems[1]).toContain('Stats');
     expect(overlayItems[2]).toBe('Palette');
+    expect(overlayItems[3]).toBe('Settings');
 
     // Click Palette in overlay -> switches to Palette screen, closes overlay, unlocks viewport
     const paletteItem = container.querySelectorAll(
@@ -556,6 +564,202 @@ describe('Reusable UI Components: Card, Heading, Tags, and TimerInfo', () => {
     });
   });
 });
+
+describe('Settings, Handedness & Full Backup', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    document.documentElement.removeAttribute('data-handedness');
+    window.location.hash = '';
+  });
+
+  it('loads default settings with right-handed orientation and unmuted sound', () => {
+    const settings = loadAppSettings();
+    expect(settings).toEqual(DEFAULT_SETTINGS);
+    expect(settings.handedness).toBe('right');
+    expect(settings.soundMuted).toBe(false);
+  });
+
+  it('saves and loads left-handed and muted settings from localStorage', () => {
+    const updated: AppSettings = {
+      handedness: 'left',
+      soundMuted: true,
+    };
+    saveAppSettings(updated);
+
+    const reloaded = loadAppSettings();
+    expect(reloaded.handedness).toBe('left');
+    expect(reloaded.soundMuted).toBe(true);
+  });
+
+  it('generates full backup payload containing all application state', () => {
+    const customTimer: SimpleTimerConfig = {
+      id: 'custom-t1',
+      name: 'Custom Test Timer',
+      kind: 'simple',
+      durationSec: 45,
+      createdAt: Date.now(),
+    };
+    saveTimers([customTimer]);
+    saveAppSettings({ handedness: 'left', soundMuted: true });
+
+    const payload = generateFullBackupPayload();
+    expect(payload.version).toBe(1);
+    expect(payload.timers).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'custom-t1' })]));
+    expect(payload.settings.handedness).toBe('left');
+    expect(payload.settings.soundMuted).toBe(true);
+    expect(Array.isArray(payload.customPalettes)).toBe(true);
+    expect(Array.isArray(payload.history)).toBe(true);
+  });
+
+  it('parses and restores full backup JSON correctly into storage', () => {
+    const backupData: AppBackupPayload = {
+      version: 1,
+      backupAt: '2026-11-02T22:00:00.000Z',
+      timers: [
+        {
+          id: 'restored-1',
+          name: 'Restored Timer',
+          kind: 'simple',
+          durationSec: 90,
+          createdAt: 12345,
+        },
+      ],
+      customPalettes: [
+        {
+          id: 'custom-pal-1',
+          name: 'Midnight Teal',
+          isCustom: true,
+          bgPrimary: '#001122',
+          bgSurface: '#052233',
+          textPrimary: '#ffffff',
+          textMuted: '#8899aa',
+          accentPrimary: '#00ffcc',
+          accentBreak: '#33ddaa',
+          accentWarn: '#ffaa00',
+        },
+      ],
+      history: [
+        {
+          id: 'hist-1',
+          timerId: 'restored-1',
+          timerName: 'Restored Timer',
+          kind: 'simple',
+          completedAt: 123456,
+          totalElapsedSec: 90,
+          lapsCompleted: 1,
+          totalLaps: 1,
+          completedFully: true,
+        },
+      ],
+      settings: {
+        handedness: 'left',
+        soundMuted: true,
+      },
+    };
+
+    const jsonText = JSON.stringify(backupData);
+    const parsed = parseFullBackupJson(jsonText);
+    expect(parsed.timers).toHaveLength(1);
+    expect(parsed.timers[0].name).toBe('Restored Timer');
+    expect(parsed.settings.handedness).toBe('left');
+
+    restoreFullBackup(parsed);
+
+    const timers = loadTimers();
+    expect(timers.some((t) => t.id === 'restored-1')).toBe(true);
+
+    const reloadedSettings = loadAppSettings();
+    expect(reloadedSettings.handedness).toBe('left');
+    expect(reloadedSettings.soundMuted).toBe(true);
+  });
+
+  it('parses settings route from hash correctly', () => {
+    expect(parseScreenFromHash('#/settings')).toBe('settings');
+    expect(parseScreenFromHash('#settings')).toBe('settings');
+  });
+
+  it('renders SettingsScreen with handedness options, sound toggle, and backup button', () => {
+    const container = document.createElement('div');
+    const root = ReactDOM.createRoot(container);
+
+    let updatedSettings: AppSettings | null = null;
+    let backupTriggered = false;
+
+    act(() => {
+      root.render(
+        React.createElement(SettingsScreen, {
+          settings: { handedness: 'right', soundMuted: false },
+          onUpdateSettings: (s) => {
+            updatedSettings = s;
+          },
+          timersCount: 4,
+          historyCount: 2,
+          palettesCount: 1,
+          onBackup: () => {
+            backupTriggered = true;
+          },
+          onRestoreBackup: () => {},
+        })
+      );
+    });
+
+    const title = container.querySelector('.ui-heading-title');
+    expect(title?.textContent).toContain('Settings');
+
+    // Check handedness cards
+    const cards = container.querySelectorAll('.handedness-card');
+    expect(cards).toHaveLength(2);
+    expect(cards[0].classList.contains('selected')).toBe(true);
+
+    // Click left-handed card
+    act(() => {
+      cards[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(updatedSettings).toEqual({ handedness: 'left', soundMuted: false });
+
+    // Click backup button
+    const backupBtn = container.querySelector('.backup-btn') as HTMLButtonElement;
+    expect(backupBtn).not.toBeNull();
+    act(() => {
+      backupBtn.click();
+    });
+    expect(backupTriggered).toBe(true);
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it('renders App with Settings navigation and applies handedness data attribute', () => {
+    saveAppSettings({ handedness: 'left', soundMuted: false });
+    window.location.hash = '#/settings';
+
+    const container = document.createElement('div');
+    const root = ReactDOM.createRoot(container);
+
+    act(() => {
+      root.render(React.createElement(App));
+    });
+
+    // Check app-shell has data-handedness="left"
+    const appShell = container.querySelector('.app-shell');
+    expect(appShell?.getAttribute('data-handedness')).toBe('left');
+    expect(document.documentElement.getAttribute('data-handedness')).toBe('left');
+
+    // Check desktop navigation has Settings tab
+    const navTabs = container.querySelectorAll('.desktop-nav .nav-tab');
+    const tabTexts = Array.from(navTabs).map((t) => t.textContent);
+    expect(tabTexts.some((txt) => txt?.includes('Settings'))).toBe(true);
+
+    // Check settings screen is rendered
+    expect(container.querySelector('.settings-screen-panel')).not.toBeNull();
+
+    act(() => {
+      root.unmount();
+    });
+  });
+});
+
 
 
 

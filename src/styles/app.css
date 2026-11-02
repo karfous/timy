@@ -1574,11 +1574,17 @@ textarea {
   align-items: center;
   gap: 0.65rem;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .save-palette-bar .text-input {
   flex: 1;
   min-width: 200px;
+}
+
+.save-palette-bar .save-palette-btn,
+.save-palette-bar .btn-solid {
+  margin-left: auto;
 }
 
 /* Import / Export Screen */
@@ -1951,3 +1957,282 @@ textarea {
     padding: 0.85rem 0.75rem;
   }
 }
+
+/* ==========================================================================
+   Handedness Layouts (Right-handed Default vs Left-handed)
+   ========================================================================== */
+
+/* Left-handed Top Bar layout: Hamburger & nav on left, brand on right */
+[data-handedness="left"] .top-bar,
+html[data-handedness="left"] .top-bar {
+  flex-direction: row-reverse;
+}
+
+/* Left-handed primary buttons: Action bar in Timers screen */
+[data-handedness="left"] .sidebar-actions,
+html[data-handedness="left"] .sidebar-actions {
+  grid-template-columns: 2fr 1fr;
+}
+
+[data-handedness="left"] .sidebar-actions .btn-solid,
+html[data-handedness="left"] .sidebar-actions .btn-solid {
+  order: -1;
+}
+
+/* Left-handed primary buttons: Modals (Save Timer, etc.) */
+[data-handedness="left"] .modal-actions,
+html[data-handedness="left"] .modal-actions {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+/* Left-handed primary buttons: Import / Export dialogs */
+[data-handedness="left"] .io-actions,
+html[data-handedness="left"] .io-actions {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+/* Left-handed primary buttons: Palette editor */
+[data-handedness="left"] .save-palette-bar,
+html[data-handedness="left"] .save-palette-bar {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+[data-handedness="left"] .save-palette-bar .save-palette-btn,
+[data-handedness="left"] .save-palette-bar .btn-solid,
+html[data-handedness="left"] .save-palette-bar .save-palette-btn,
+html[data-handedness="left"] .save-palette-bar .btn-solid {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+/* Left-handed primary buttons: Workout screen close button */
+[data-handedness="left"] .workout-top-zone,
+html[data-handedness="left"] .workout-top-zone {
+  flex-direction: row-reverse;
+}
+
+/* Left-handed primary buttons: Backup action bar in Settings */
+[data-handedness="left"] .backup-action-bar,
+html[data-handedness="left"] .backup-action-bar {
+  flex-direction: row-reverse;
+  justify-content: space-between;
+}
+
+[data-handedness="left"] .backup-action-bar .backup-btn,
+html[data-handedness="left"] .backup-action-bar .backup-btn {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+/* ==========================================================================
+   Settings Screen Styles
+   ========================================================================== */
+
+.settings-screen-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.settings-feedback-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  animation: fadeIn 0.2s ease;
+}
+
+.settings-feedback-banner.success {
+  background-color: color-mix(in oklab, var(--accent-break) 12%, var(--bg-surface));
+  border: 1px solid color-mix(in oklab, var(--accent-break) 35%, transparent);
+  color: var(--accent-break);
+}
+
+.settings-feedback-banner.error {
+  background-color: color-mix(in oklab, var(--accent-warn) 12%, var(--bg-surface));
+  border: 1px solid color-mix(in oklab, var(--accent-warn) 35%, transparent);
+  color: var(--accent-warn);
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.settings-group-title {
+  margin-bottom: 0.35rem;
+}
+
+.handedness-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+.handedness-card {
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background-color: var(--bg-surface);
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.handedness-card:hover {
+  border-color: var(--border-strong);
+  background-color: var(--surface-hover);
+}
+
+.handedness-card.selected {
+  border-color: var(--accent-primary);
+  background-color: color-mix(in oklab, var(--accent-primary) 7%, var(--bg-surface));
+}
+
+.handedness-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.handedness-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.handedness-badge {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background-color: var(--surface-hover);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.handedness-card.selected .check-indicator {
+  margin-left: auto;
+  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+}
+
+.handedness-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.15rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background-color: var(--bg-surface);
+  gap: 1rem;
+}
+
+.settings-toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.toggle-label {
+  font-weight: 500;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+}
+
+.toggle-sublabel {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.active-toggle {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background-color: color-mix(in oklab, var(--accent-primary) 10%, var(--bg-surface));
+}
+
+.backup-panel-card {
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background-color: var(--bg-surface);
+}
+
+.backup-stats-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.backup-stat-pill {
+  display: flex;
+  flex-direction: column;
+  padding: 0.6rem 0.95rem;
+  border-radius: 8px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  min-width: 100px;
+}
+
+.backup-stat-pill strong {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.backup-stat-pill span {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.15rem;
+}
+
+.backup-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.backup-action-bar .backup-btn {
+  min-width: 140px;
+  margin-left: auto;
+}
+
+.restore-label-btn {
+  cursor: pointer;
+  user-select: none;
+}
+
+.hidden-file-input {
+  display: none !important;
+}
+
+@media (max-width: 600px) {
+  .handedness-options {
+    grid-template-columns: 1fr;
+  }
+}
+

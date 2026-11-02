@@ -2,11 +2,14 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Activity,
   Palette,
+  Settings as SettingsIcon,
   Timer as TimerIcon,
   Menu,
   X,
 } from 'lucide-react';
 import {
+  AppBackupPayload,
+  AppSettings,
   ColorPalette,
   TimerDefinition,
   WorkoutHistoryEntry,
@@ -24,7 +27,10 @@ import {
   loadHistory,
   addHistoryEntry,
   clearHistory,
-  loadAudioMuted,
+  loadAppSettings,
+  saveAppSettings,
+  downloadFullBackupFile,
+  restoreFullBackup,
 } from './services/storage';
 import { soundEngine } from './services/audio';
 import { Screen, ScreenRoute, useScreenRouter } from './components/Screen';
@@ -34,6 +40,7 @@ import { ImportExportScreen } from './screens/ImportExportScreen';
 import { WorkoutScreen } from './screens/WorkoutScreen';
 import { StatsScreen } from './screens/StatsScreen';
 import { PaletteScreen } from './screens/PaletteScreen';
+import { SettingsScreen } from './screens/SettingsScreen';
 
 export const App: React.FC = () => {
   const [timers, setTimers] = useState<TimerDefinition[]>(() => loadTimers());
@@ -49,10 +56,17 @@ export const App: React.FC = () => {
   const [history, setHistory] = useState<WorkoutHistoryEntry[]>(() =>
     loadHistory()
   );
+  const [settings, setSettings] = useState<AppSettings>(() =>
+    loadAppSettings()
+  );
 
   useEffect(() => {
-    soundEngine.setMuted(loadAudioMuted());
-  }, []);
+    soundEngine.setMuted(settings.soundMuted);
+  }, [settings.soundMuted]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-handedness', settings.handedness);
+  }, [settings.handedness]);
 
   const { activeScreen, navigateToScreen } = useScreenRouter('timers');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -213,12 +227,52 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleUpdateSettings = (newSettings: AppSettings) => {
+    setSettings(newSettings);
+    saveAppSettings(newSettings);
+  };
+
+  const handleBackup = () => {
+    downloadFullBackupFile({
+      version: 1,
+      backupAt: new Date().toISOString(),
+      timers,
+      customPalettes,
+      activePalette,
+      history,
+      settings,
+    });
+  };
+
+  const handleRestoreBackup = (backup: AppBackupPayload) => {
+    restoreFullBackup(backup);
+    if (backup.timers && backup.timers.length > 0) {
+      setTimers(backup.timers);
+      if (backup.timers[0]) {
+        setActiveTimerId(backup.timers[0].id);
+      }
+    }
+    if (backup.customPalettes) {
+      setCustomPalettes(backup.customPalettes);
+    }
+    if (backup.activePalette) {
+      setActivePalette(backup.activePalette);
+    }
+    if (backup.history) {
+      setHistory(backup.history);
+    }
+    if (backup.settings) {
+      setSettings(backup.settings);
+    }
+  };
+
   const isWorkoutLocked = activeScreen === 'workout';
 
   return (
     <div
       className={`app-shell ${isWorkoutLocked ? 'app-shell-locked' : ''}`}
       data-active-screen={activeScreen}
+      data-handedness={settings.handedness}
     >
       {/* Minimalist Top Bar (hidden on Workout Screen) */}
       {!isWorkoutLocked && (
@@ -274,6 +328,14 @@ export const App: React.FC = () => {
             >
               <Palette size={16} strokeWidth={1.6} />
               <span>Palette</span>
+            </button>
+            <button
+              type="button"
+              className={`nav-tab ${activeScreen === 'settings' ? 'active' : ''}`}
+              onClick={() => handleSelectMenuScreen('settings')}
+            >
+              <SettingsIcon size={16} strokeWidth={1.6} />
+              <span>Settings</span>
             </button>
           </nav>
 
@@ -349,6 +411,17 @@ export const App: React.FC = () => {
             >
               <Palette size={20} strokeWidth={1.7} />
               <span>Palette</span>
+            </button>
+
+            <button
+              type="button"
+              className={`mobile-menu-item ${
+                activeScreen === 'settings' ? 'active' : ''
+              }`}
+              onClick={() => handleSelectMenuScreen('settings')}
+            >
+              <SettingsIcon size={20} strokeWidth={1.7} />
+              <span>Settings</span>
             </button>
           </nav>
         </div>
@@ -444,6 +517,22 @@ export const App: React.FC = () => {
             onSelectPalette={setActivePalette}
             onSaveCustomPalette={handleSaveCustomPalette}
             onDeleteCustomPalette={handleDeleteCustomPalette}
+          />
+        </Screen>
+
+        <Screen
+          id="settings"
+          activeScreen={activeScreen}
+          ariaLabel="Settings Screen"
+        >
+          <SettingsScreen
+            settings={settings}
+            onUpdateSettings={handleUpdateSettings}
+            timersCount={timers.length}
+            historyCount={history.length}
+            palettesCount={customPalettes.length}
+            onBackup={handleBackup}
+            onRestoreBackup={handleRestoreBackup}
           />
         </Screen>
       </main>

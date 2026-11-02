@@ -6,6 +6,7 @@ export type ScreenRoute =
   | 'workout'
   | 'stats'
   | 'palette'
+  | 'settings'
   | 'import';
 
 const VALID_SCREENS: ScreenRoute[] = [
@@ -14,6 +15,7 @@ const VALID_SCREENS: ScreenRoute[] = [
   'workout',
   'stats',
   'palette',
+  'settings',
   'import',
 ];
 
