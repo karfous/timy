@@ -37,7 +37,7 @@ export function extractTimerInfoData(timer: TimerDefinition): TimerInfoData {
 export function formatTimerInfoString(timer: TimerDefinition): string {
   const { laps, rounds, workSec, breakSec, longBreakSec } =
     extractTimerInfoData(timer);
-  return `L${laps} | R${rounds} | W${workSec} | BR ${breakSec}(${longBreakSec})`;
+  return `L${laps} | R${rounds} | W${workSec} | BR ${breakSec} (${longBreakSec})`;
 }
 
 export interface TimerInfoProps {
@@ -47,7 +47,7 @@ export interface TimerInfoProps {
 
 /**
  * Compact TimerInfo component showing timer parameters as:
- * "L3 | R4 | W20 | BR 10(60)"
+ * "L3 | R4 | W20 | BR 10 (60)"
  */
 export const TimerInfo: React.FC<TimerInfoProps> = ({
   timer,
@@ -75,7 +75,7 @@ export const TimerInfo: React.FC<TimerInfoProps> = ({
       </span>
       <span className="timer-info-part timer-info-break">
         BR {breakSec}
-        <span className="timer-info-long-break">({longBreakSec})</span>
+        <span className="timer-info-long-break"> ({longBreakSec})</span>
       </span>
     </div>
   );

@@ -103,16 +103,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       className="panel-section settings-screen-panel"
       aria-label="Application Settings"
     >
-      <Heading
-        level={2}
-        size="lg"
-        icon={<Settings size={18} strokeWidth={1.6} />}
-        title="Settings"
-        subtitle="Manage interface layout, audio alerts, and full application backups."
-        className="section-header"
-        titleClassName="section-title"
-      />
-
       {feedbackMsg && (
         <div
           className={`settings-feedback-banner ${feedbackMsg.type === 'success' ? 'success' : 'error'
