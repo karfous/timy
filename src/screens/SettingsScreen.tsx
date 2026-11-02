@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import {
-  Settings,
   Hand,
   Volume2,
   VolumeX,
