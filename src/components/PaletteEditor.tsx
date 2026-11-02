@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Palette, Check, RotateCcw, Plus, Trash2 } from 'lucide-react';
 import { ColorPalette } from '../types/timer';
 import { DEFAULT_PALETTES } from '../services/storage';
+import { Card } from './Card';
+import { Heading } from './Heading';
 
 interface PaletteEditorProps {
   activePalette: ColorPalette;
@@ -95,36 +97,44 @@ export const PaletteEditor: React.FC<PaletteEditorProps> = ({
   const allPalettes = [...DEFAULT_PALETTES, ...customPalettes];
 
   return (
-    <section className="panel-section" aria-label="Color Palette Editor">
-      <div className="section-header">
-        <div>
-          <h2 className="section-title">
-            <Palette size={18} strokeWidth={1.6} />
-            <span>Color Palette & Theme</span>
-          </h2>
-          <p className="section-subtitle">
-            Customize colors in real time and save your palette to localStorage.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="btn-ghost small"
-          onClick={handleResetDefault}
-          title="Reset to default dark mode"
-        >
-          <RotateCcw size={14} strokeWidth={1.6} />
-          <span>Reset Default</span>
-        </button>
-      </div>
+    <Card
+      as="section"
+      variant="surface"
+      className="panel-section"
+      aria-label="Color Palette Editor"
+    >
+      <Heading
+        level={2}
+        size="lg"
+        icon={<Palette size={18} strokeWidth={1.6} />}
+        title="Color Palette & Theme"
+        subtitle="Customize colors in real time and save your palette to localStorage."
+        className="section-header"
+        titleClassName="section-title"
+        actions={
+          <button
+            type="button"
+            className="btn-ghost small"
+            onClick={handleResetDefault}
+            title="Reset to default dark mode"
+          >
+            <RotateCcw size={14} strokeWidth={1.6} />
+            <span>Reset Default</span>
+          </button>
+        }
+      />
 
       {/* Saved & Preset Palettes Grid */}
       <div className="palettes-grid">
         {allPalettes.map((palette) => {
           const isSelected = activePalette.id === palette.id;
           return (
-            <div
+            <Card
               key={palette.id}
-              className={`palette-preset-card ${isSelected ? 'selected' : ''}`}
+              variant="item"
+              interactive
+              selected={isSelected}
+              className="palette-preset-card"
               onClick={() => handleSelectPreset(palette)}
               role="button"
               tabIndex={0}
@@ -158,17 +168,27 @@ export const PaletteEditor: React.FC<PaletteEditorProps> = ({
                   </button>
                 )}
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>
 
       {/* Live Color Editor */}
       <form className="custom-palette-form" onSubmit={handleSavePalette}>
-        <h3 className="subsection-title">Live Palette Editor</h3>
+        <Heading
+          level={3}
+          size="sm"
+          title="Live Palette Editor"
+          titleClassName="subsection-title"
+        />
         <div className="color-pickers-grid">
           {COLOR_FIELDS.map((field) => (
-            <label key={field.key} className="color-picker-item">
+            <Card
+              as="label"
+              key={field.key}
+              variant="control"
+              className="color-picker-item"
+            >
               <div className="color-picker-info">
                 <span className="color-field-label">{field.label}</span>
                 <span className="color-field-hint">{field.hint}</span>
@@ -194,7 +214,7 @@ export const PaletteEditor: React.FC<PaletteEditorProps> = ({
                   aria-label={`${field.label} hex code`}
                 />
               </div>
-            </label>
+            </Card>
           ))}
         </div>
 
@@ -222,7 +242,6 @@ export const PaletteEditor: React.FC<PaletteEditorProps> = ({
           </button>
         </div>
       </form>
-    </section>
+    </Card>
   );
 };
-

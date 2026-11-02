@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Minus, Plus, Check, Timer, Repeat, Tag } from 'lucide-react';
+import { X, Minus, Plus, Check, Timer, Repeat } from 'lucide-react';
 import { TimerDefinition, TimerKind } from '../types/timer';
 import { CircularTimeInput } from './CircularTimeInput';
 import {
@@ -7,6 +7,8 @@ import {
   getTotalTimerDurationSec,
 } from '../utils/timerEngine';
 import { normalizeTags } from '../services/storage';
+import { Heading } from './Heading';
+import { TagsEditor } from './Tags';
 
 interface TimerEditorModalProps {
   initialTimer?: TimerDefinition | null;
@@ -141,10 +143,6 @@ export const TimerEditorModal: React.FC<TimerEditorModalProps> = ({
 
   const totalPreviewSec = getTotalTimerDurationSec(buildDraftTimer(tags));
 
-  const unusedSuggestions = availableTags.filter(
-    (sug) => !tags.some((t) => t.toLowerCase() === sug.toLowerCase())
-  );
-
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
@@ -154,19 +152,23 @@ export const TimerEditorModal: React.FC<TimerEditorModalProps> = ({
         aria-modal="true"
         aria-labelledby="editor-modal-title"
       >
-        <div className="modal-header">
-          <h3 id="editor-modal-title">
-            {initialTimer ? 'Edit Timer' : 'New Timer Definition'}
-          </h3>
-          <button
-            type="button"
-            className="icon-btn"
-            onClick={onClose}
-            aria-label="Close modal"
-          >
-            <X size={18} strokeWidth={1.6} />
-          </button>
-        </div>
+        <Heading
+          id="editor-modal-title"
+          level={3}
+          size="md"
+          title={initialTimer ? 'Edit Timer' : 'New Timer Definition'}
+          className="modal-header"
+          actions={
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={onClose}
+              aria-label="Close modal"
+            >
+              <X size={18} strokeWidth={1.6} />
+            </button>
+          }
+        />
 
         <form onSubmit={handleSubmit} className="editor-form">
           {/* Timer Kind Switcher */}
@@ -226,65 +228,16 @@ export const TimerEditorModal: React.FC<TimerEditorModalProps> = ({
           </div>
 
           {/* Tags Editor */}
-          <div className="field-block">
-            <span className="field-label">
-              <Tag size={12} style={{ display: 'inline', marginRight: 4 }} />
-              Tags
-            </span>
-            <div className="tags-editor-box">
-              {tags.map((tag) => (
-                <span key={tag} className="tag-chip editable">
-                  <span>#{tag}</span>
-                  <button
-                    type="button"
-                    className="tag-chip-remove"
-                    onClick={() => handleRemoveTag(tag)}
-                    aria-label={`Remove tag ${tag}`}
-                  >
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-              <input
-                type="text"
-                className="tag-inline-input"
-                placeholder={
-                  tags.length === 0
-                    ? 'Add tags (press Enter or comma, e.g. hiit, cardio)...'
-                    : 'Add tag...'
-                }
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleTagInputKeyDown}
-                aria-label="Add tag"
-              />
-              {tagInput.trim() && (
-                <button
-                  type="button"
-                  className="btn-ghost small tag-add-btn"
-                  onClick={handleAddTagFromInput}
-                >
-                  <Plus size={13} />
-                  <span>Add</span>
-                </button>
-              )}
-            </div>
-            {unusedSuggestions.length > 0 && (
-              <div className="tag-suggestions-row">
-                <span className="field-subtext">Existing tags:</span>
-                {unusedSuggestions.map((sug) => (
-                  <button
-                    key={sug}
-                    type="button"
-                    className="tag-suggestion-pill"
-                    onClick={() => handleToggleSuggestedTag(sug)}
-                  >
-                    +{sug}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <TagsEditor
+            tags={tags}
+            tagInput={tagInput}
+            availableTags={availableTags}
+            onTagInputChange={setTagInput}
+            onTagInputKeyDown={handleTagInputKeyDown}
+            onAddTagFromInput={handleAddTagFromInput}
+            onRemoveTag={handleRemoveTag}
+            onToggleSuggestedTag={handleToggleSuggestedTag}
+          />
 
           {/* Laps & Rounds Controls for Workout Timers */}
           {kind === 'workout' && (

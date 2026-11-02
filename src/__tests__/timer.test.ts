@@ -21,6 +21,10 @@ import {
 } from '../services/storage';
 import { WorkoutTimerConfig, SimpleTimerConfig } from '../types/timer';
 import { parseScreenFromHash } from '../components/Screen';
+import { Card } from '../components/Card';
+import { Heading } from '../components/Heading';
+import { TagChip, TagList, TagFilterBar } from '../components/Tags';
+import { TimerInfo, formatTimerInfoString } from '../components/TimerInfo';
 import { App } from '../App';
 
 describe('Timer Phase & 5-Second Countdown Engine', () => {
@@ -365,5 +369,90 @@ describe('Screen Routing, Mobile Hamburger Overlay & Workout Screen Lock', () =>
     container.remove();
   });
 });
+
+describe('Reusable UI Components: Card, Heading, Tags, and TimerInfo', () => {
+  it('formats workout and simple timers in "L3 | R4 | W20 | BR 10(60)" format', () => {
+    const workout: WorkoutTimerConfig = {
+      id: 'w-info',
+      name: 'HIIT',
+      kind: 'workout',
+      laps: 3,
+      rounds: 4,
+      workSec: 20,
+      breakSec: 10,
+      longBreakSec: 60,
+      createdAt: 1000,
+    };
+    expect(formatTimerInfoString(workout)).toBe('L3 | R4 | W20 | BR 10(60)');
+
+    const container = document.createElement('div');
+    const root = ReactDOM.createRoot(container);
+    act(() => {
+      root.render(React.createElement(TimerInfo, { timer: workout }));
+    });
+    expect(container.textContent).toBe('L3 | R4 | W20 | BR 10(60)');
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it('renders Card component in desktop and mobile states and Heading / Tags components', () => {
+    const container = document.createElement('div');
+    const root = ReactDOM.createRoot(container);
+
+    act(() => {
+      root.render(
+        React.createElement(
+          'div',
+          null,
+          React.createElement(
+            Card,
+            { state: 'desktop', variant: 'item', selected: true },
+            React.createElement(Heading, {
+              title: 'Desktop Card Title',
+              subtitle: 'Subtitle text',
+            }),
+            React.createElement(TagList, {
+              tags: ['hiit', 'cardio'],
+              selectedTags: ['hiit'],
+            })
+          ),
+          React.createElement(
+            Card,
+            { state: 'mobile', variant: 'surface' },
+            React.createElement(TagChip, { tag: 'boxing', active: true }),
+            React.createElement(TagFilterBar, {
+              allTags: ['hiit', 'boxing'],
+              selectedTags: ['boxing'],
+              totalCount: 4,
+              onToggleTag: () => {},
+              onClearTags: () => {},
+            })
+          )
+        )
+      );
+    });
+
+    const cards = container.querySelectorAll('.ui-card');
+    expect(cards).toHaveLength(2);
+    expect(cards[0].getAttribute('data-card-state')).toBe('desktop');
+    expect(cards[0].classList.contains('ui-card--desktop')).toBe(true);
+    expect(cards[0].classList.contains('ui-card--selected')).toBe(true);
+
+    expect(cards[1].getAttribute('data-card-state')).toBe('mobile');
+    expect(cards[1].classList.contains('ui-card--mobile')).toBe(true);
+
+    expect(container.querySelector('.ui-heading-title')?.textContent).toContain(
+      'Desktop Card Title'
+    );
+    expect(container.querySelectorAll('.tag-chip').length).toBeGreaterThanOrEqual(3);
+
+    act(() => {
+      root.unmount();
+    });
+  });
+});
+
 
 

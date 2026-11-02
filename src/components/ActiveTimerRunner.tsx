@@ -5,9 +5,9 @@ import {
   buildTimerPhases,
   computeTimerSnapshot,
   formatMMSS,
-  formatHumanDuration,
 } from '../utils/timerEngine';
 import { soundEngine } from '../services/audio';
+import { TimerInfo } from './TimerInfo';
 
 interface ActiveTimerRunnerProps {
   timer: TimerDefinition;
@@ -220,19 +220,9 @@ export const ActiveTimerRunner: React.FC<ActiveTimerRunnerProps> = ({
           aria-hidden={isRunning}
         >
           <h2 className="workout-timer-name">{timer.name}</h2>
-          <p className="workout-timer-specs">
-            {timer.kind === 'workout'
-              ? `${timer.laps} ${timer.laps === 1 ? 'lap' : 'laps'} × ${
-                  timer.rounds ?? 1
-                } ${(timer.rounds ?? 1) === 1 ? 'round' : 'rounds'} · ${formatHumanDuration(
-                  timer.workSec
-                )} work / ${formatHumanDuration(timer.breakSec)} short${
-                  timer.longBreakSec
-                    ? ` / ${formatHumanDuration(timer.longBreakSec)} long`
-                    : ''
-                }`
-              : `Simple timer · ${formatHumanDuration(timer.durationSec)}`}
-          </p>
+          <div className="workout-timer-specs">
+            <TimerInfo timer={timer} />
+          </div>
         </div>
 
         {onCloseWorkout && (
@@ -284,7 +274,13 @@ export const ActiveTimerRunner: React.FC<ActiveTimerRunnerProps> = ({
             <span className="workout-total-left">-{totalRemainingFormatted}</span>
           </div>
 
-          <div className="workout-progress-column" role="progressbar" aria-valuenow={Math.round(totalProgressPercent)} aria-valuemin={0} aria-valuemax={100}>
+          <div
+            className="workout-progress-column"
+            role="progressbar"
+            aria-valuenow={Math.round(totalProgressPercent)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
             <div
               className="workout-progress-fill"
               style={{ height: `${totalProgressPercent}%` }}

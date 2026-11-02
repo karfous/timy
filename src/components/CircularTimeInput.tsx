@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { Card } from './Card';
 
 interface CircularTimeInputProps {
   label: string;
@@ -166,7 +167,7 @@ export const CircularTimeInput: React.FC<CircularTimeInputProps> = ({
   };
 
   return (
-    <div className="circular-input-card">
+    <Card variant="control" className="circular-input-card">
       <div className="circular-input-header">
         <span className="circular-input-label">{label}</span>
         <div className="ring-legend">
@@ -323,7 +324,7 @@ export const CircularTimeInput: React.FC<CircularTimeInputProps> = ({
         <span className="direct-text-hint">Type seconds or MM:SS</span>
         <input
           type="text"
-           inputMode="text"
+          inputMode="text"
           className="direct-seconds-input"
           value={rawSecText}
           aria-label={`${label} direct text input`}
@@ -337,7 +338,6 @@ export const CircularTimeInput: React.FC<CircularTimeInputProps> = ({
           }}
         />
       </div>
-    </div>
+    </Card>
   );
 };
-

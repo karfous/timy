@@ -6,14 +6,13 @@ import {
   FileJson,
   Repeat,
   Clock,
-  Tag,
   Play,
 } from 'lucide-react';
 import { TimerDefinition } from '../types/timer';
-import {
-  formatHumanDuration,
-  getTotalTimerDurationSec,
-} from '../utils/timerEngine';
+import { Card } from '../components/Card';
+import { Heading } from '../components/Heading';
+import { TagFilterBar, TagList } from '../components/Tags';
+import { TimerInfo } from '../components/TimerInfo';
 
 export interface TimersScreenProps {
   timers: TimerDefinition[];
@@ -59,64 +58,49 @@ export const TimersScreen: React.FC<TimersScreenProps> = ({
   };
 
   return (
-    <section className="timers-screen-panel" aria-label="Saved Timers">
-      <div className="sidebar-header">
-        <div>
-          <h2 className="sidebar-title">Saved Timers</h2>
-          <p className="section-subtitle">
-            Choose a timer to launch the workout screen
-          </p>
-        </div>
-        <div className="sidebar-actions">
-          <button
-            type="button"
-            className="btn-ghost small"
-            onClick={onOpenImportExport}
-            title="Export or Import JSON"
-          >
-            <FileJson size={15} strokeWidth={1.6} />
-            <span>JSON</span>
-          </button>
-          <button
-            type="button"
-            className="btn-solid small"
-            onClick={onCreateNewTimer}
-          >
-            <Plus size={15} strokeWidth={1.8} />
-            <span>New Timer</span>
-          </button>
-        </div>
-      </div>
+    <Card
+      as="section"
+      variant="surface"
+      className="timers-screen-panel"
+      aria-label="Saved Timers"
+    >
+      <Heading
+        level={2}
+        size="md"
+        title="Saved Timers"
+        subtitle="Choose a timer to launch the workout screen"
+        className="sidebar-header"
+        titleClassName="sidebar-title"
+        actions={
+          <div className="sidebar-actions">
+            <button
+              type="button"
+              className="btn-ghost small"
+              onClick={onOpenImportExport}
+              title="Export or Import JSON"
+            >
+              <FileJson size={15} strokeWidth={1.6} />
+              <span>JSON</span>
+            </button>
+            <button
+              type="button"
+              className="btn-solid small"
+              onClick={onCreateNewTimer}
+            >
+              <Plus size={15} strokeWidth={1.8} />
+              <span>New Timer</span>
+            </button>
+          </div>
+        }
+      />
 
-      {allTags.length > 0 && (
-        <div className="tags-filter-bar" aria-label="Filter timers by tag">
-          <button
-            type="button"
-            className={`tag-filter-pill ${
-              selectedTags.length === 0 ? 'active' : ''
-            }`}
-            onClick={() => setSelectedTags([])}
-          >
-            All ({timers.length})
-          </button>
-          {allTags.map((tag) => {
-            const isTagSelected = selectedTags.some(
-              (t) => t.toLowerCase() === tag.toLowerCase()
-            );
-            return (
-              <button
-                key={tag}
-                type="button"
-                className={`tag-filter-pill ${isTagSelected ? 'active' : ''}`}
-                onClick={() => handleToggleTagFilter(tag)}
-              >
-                <Tag size={11} strokeWidth={1.7} />
-                <span>{tag}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <TagFilterBar
+        allTags={allTags}
+        selectedTags={selectedTags}
+        totalCount={timers.length}
+        onToggleTag={handleToggleTagFilter}
+        onClearTags={() => setSelectedTags([])}
+      />
 
       {filteredTimers.length === 0 ? (
         <div className="empty-state small">
@@ -134,13 +118,14 @@ export const TimersScreen: React.FC<TimersScreenProps> = ({
         <ul className="presets-list timers-grid-list">
           {filteredTimers.map((item) => {
             const isSelected = item.id === activeTimerId;
-            const totalSec = getTotalTimerDurationSec(item);
-            const roundsPerLap =
-              item.kind === 'workout' ? item.rounds ?? 1 : 1;
             return (
-              <li
+              <Card
+                as="li"
                 key={item.id}
-                className={`preset-card ${isSelected ? 'selected' : ''}`}
+                variant="item"
+                interactive
+                selected={isSelected}
+                className="preset-card"
                 onClick={() => onChooseTimer(item.id)}
                 role="button"
                 tabIndex={0}
@@ -152,76 +137,32 @@ export const TimersScreen: React.FC<TimersScreenProps> = ({
                 }}
               >
                 <div className="preset-card-main">
-                  <div className="preset-title-row">
-                    <span className="preset-kind-icon">
-                      {item.kind === 'workout' ? (
-                        <Repeat size={14} strokeWidth={1.7} />
-                      ) : (
-                        <Clock size={14} strokeWidth={1.7} />
-                      )}
-                    </span>
-                    <span className="preset-name">{item.name}</span>
-                  </div>
+                  <Heading
+                    level={3}
+                    size="sm"
+                    icon={
+                      <span className="preset-kind-icon">
+                        {item.kind === 'workout' ? (
+                          <Repeat size={14} strokeWidth={1.7} />
+                        ) : (
+                          <Clock size={14} strokeWidth={1.7} />
+                        )}
+                      </span>
+                    }
+                    title={item.name}
+                    className="preset-title-row"
+                    titleClassName="preset-name"
+                  />
 
                   <div className="preset-details">
-                    {item.kind === 'workout' ? (
-                      <>
-                        <span>
-                          {item.laps} {item.laps === 1 ? 'lap' : 'laps'} ×{' '}
-                          {roundsPerLap}{' '}
-                          {roundsPerLap === 1 ? 'round' : 'rounds'}
-                        </span>
-                        <span>·</span>
-                        <span className="work-tag">
-                          {formatHumanDuration(item.workSec)} work
-                        </span>
-                        <span>/</span>
-                        <span className="break-tag">
-                          {formatHumanDuration(item.breakSec)} short
-                        </span>
-                        {item.longBreakSec ? (
-                          <>
-                            <span>/</span>
-                            <span className="long-break-tag">
-                              {formatHumanDuration(item.longBreakSec)} long
-                            </span>
-                          </>
-                        ) : null}
-                      </>
-                    ) : (
-                      <span>
-                        Simple · {formatHumanDuration(item.durationSec)}
-                      </span>
-                    )}
-                    <span>·</span>
-                    <span>Total {formatHumanDuration(totalSec)}</span>
+                    <TimerInfo timer={item} />
                   </div>
 
-                  {item.tags && item.tags.length > 0 && (
-                    <div
-                      className="preset-tags-row"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {item.tags.map((tag) => {
-                        const isActiveFilter = selectedTags.some(
-                          (t) => t.toLowerCase() === tag.toLowerCase()
-                        );
-                        return (
-                          <button
-                            key={tag}
-                            type="button"
-                            className={`tag-chip interactive ${
-                              isActiveFilter ? 'active' : ''
-                            }`}
-                            onClick={() => handleToggleTagFilter(tag)}
-                            title={`Filter by #${tag}`}
-                          >
-                            #{tag}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <TagList
+                    tags={item.tags}
+                    selectedTags={selectedTags}
+                    onToggleTag={handleToggleTagFilter}
+                  />
                 </div>
 
                 <div
@@ -258,12 +199,11 @@ export const TimersScreen: React.FC<TimersScreenProps> = ({
                     </button>
                   )}
                 </div>
-              </li>
+              </Card>
             );
           })}
         </ul>
       )}
-    </section>
+    </Card>
   );
 };
-
